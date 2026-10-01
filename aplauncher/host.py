@@ -112,6 +112,28 @@ class Server:
                 self.proc.kill()
 
 
+def server_pid_on_port(port: int) -> int | None:
+    """PID of an ArchipelagoServer.exe listening on the port (e.g. left over after the launcher crashed)."""
+    try:
+        out = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True, timeout=10,
+                             creationflags=NO_WINDOW).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 5 and parts[1].endswith(f":{port}") and parts[3].upper().startswith(("LISTEN", "ABH")):
+            pid = int(parts[4])
+            name = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True,
+                                  text=True, timeout=10, creationflags=NO_WINDOW).stdout
+            if "archipelagoserver" in name.lower():
+                return pid
+    return None
+
+
+def kill_pid(pid: int):
+    subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, creationflags=NO_WINDOW)
+
+
 def wait_port_free(port: int, timeout=10):
     end = time.time() + timeout
     while time.time() < end:

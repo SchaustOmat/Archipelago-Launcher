@@ -154,12 +154,15 @@ class GameHud:
         x, y, w, h = client_rect(hwnd)
         self.win.update_idletasks()
         height = self.win.winfo_reqheight()
-        self.win.geometry(f"{WIDTH}x{height}+{x + max(0, w - WIDTH - 14)}+{y + 14}")
+        # Right edge, below the in-game button display (OoT's A/B/C icons sit in the top right corner).
+        top = y + int(h * 0.22)
+        self.win.geometry(f"{WIDTH}x{height}+{x + max(0, w - WIDTH - 14)}+{top}")
         if self.win.state() == "withdrawn":
             self.win.deiconify()
             if not self.styled:
                 self.win.update_idletasks()
                 self._click_through()
+        self.win.lift()  # stay above the (also topmost) overlay window
 
     def _render(self, snap, place):
         title, here, tips, nxt = guidance(snap, place)

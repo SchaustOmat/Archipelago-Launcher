@@ -37,8 +37,9 @@ class Overlay:
         self.win.title(f"Overlay – {slot}")
         self.win.configure(bg=theme.BG)
         self.win.attributes("-topmost", True)
+        # Left edge: the in-game HUD lives on the right side of the game window.
         w, h = 420, 720
-        self.win.geometry(f"{w}x{h}+{self.win.winfo_screenwidth() - w - 30}+50")
+        self.win.geometry(f"{w}x{h}+20+60")
         self.win.minsize(340, 420)
         self.win.protocol("WM_DELETE_WINDOW", self.close)
         theme.dark_titlebar(self.win)

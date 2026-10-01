@@ -536,8 +536,31 @@ class App:
         return None
 
     # ================= hosting =================
+    def _free_port(self) -> bool:
+        """Offer to stop a leftover Archipelago server that still holds our port."""
+        if self.server and self.server.running():
+            return True
+        pid = host.server_pid_on_port(self.port)
+        if pid is None:
+            return True
+        if not messagebox.askyesno("Server läuft noch",
+                                   f"Auf Port {self.port} läuft noch ein Archipelago-Server (z. B. von einem "
+                                   "geschlossenen Launcher). Mitspieler sind evtl. noch damit verbunden.\n\n"
+                                   "Beenden? Der Spielstand ist gespeichert und kann fortgesetzt werden."):
+            return False
+        host.kill_pid(pid)
+        try:
+            host.wait_port_free(self.port)
+        except host.HostError as e:
+            messagebox.showerror("Port", str(e))
+            return False
+        self._log("Alten Archipelago-Server beendet.")
+        return True
+
     def host_start(self):
         self._save_fields()
+        if not self._free_port():
+            return
         if not self._installer().archipelago_ok():
             messagebox.showerror("Host", "Archipelago ist noch nicht installiert. Erst 'Installieren / Prüfen'.")
             return
@@ -669,6 +692,8 @@ class App:
 
     def host_resume(self):
         self._save_fields()
+        if not self._free_port():
+            return
         sessions = host.list_sessions(self.paths)
         if not sessions:
             messagebox.showinfo("Fortsetzen", "Keine gespeicherten Multiworlds gefunden.")
