@@ -81,6 +81,8 @@ class App:
         ttk.Button(row, text="Optionen bearbeiten (YAML)", command=self.edit_yaml).pack(side="left", padx=6)
         ttk.Button(row, text="Options Creator", command=self.options_creator).pack(side="left", padx=6)
         ttk.Button(row, text="Ordner öffnen", command=lambda: self._open(self.paths.root)).pack(side="left", padx=6)
+        self.b_mods = ttk.Button(row, text="SoH Mods/Texturen", command=self.open_soh_mods)
+        self.b_mods.pack(side="left", padx=6)
         self.l_inst = ttk.Label(row, text="")
         self.l_inst.pack(side="left", padx=12)
         me.columnconfigure(3, weight=1)
@@ -360,6 +362,16 @@ class App:
             return
         subprocess.Popen([str(exe)], cwd=self.paths.ap)
         self._log(f"Options Creator gestartet. Die fertige YAML als {self.paths.yaml_for(self.game)} speichern.")
+
+    def open_soh_mods(self):
+        """SoH loads texture packs (.o2r/.otr) from the mods folder next to soh.exe."""
+        if not self.paths.soh_exe.is_file():
+            messagebox.showinfo("SoH Mods", "Ship of Harkinian ist noch nicht installiert. "
+                                            "Erst OoT wählen und 'Installieren / Prüfen'.")
+            return
+        self._open(self.paths.soh / "mods")
+        self._log("Texturpakete (.o2r/.otr) in den mods-Ordner legen. In SoH unter "
+                  "Einstellungen → Mods bzw. 'Alternative Assets' (Taste Tab) aktivieren.")
 
     def _open(self, path):
         path.mkdir(parents=True, exist_ok=True)
