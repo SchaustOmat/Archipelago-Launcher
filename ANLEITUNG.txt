@@ -40,14 +40,19 @@ Mitspielen (Tab "🎮 Spielen")
     * Ocarina of Time: auf dem Titelbildschirm einen NEUEN Spielstand anlegen und
       dabei "Archipelago" wählen. Jede neue Multiworld braucht einen neuen Spielstand.
 
-Overlay (Ziele und "wohin als Nächstes")
-----------------------------------------
-Sobald du verbunden bist: "🗺 Overlay" klicken. Ein kleines Fenster bleibt über dem Spiel und zeigt:
-  * dein Ziel und wie weit du bist (z. B. Sterne, Amulette, Schlüssel)
-  * alle Orte, die du mit deinen aktuellen Items erreichen kannst, nach Gebiet sortiert
-    (aufklappen für die einzelnen Orte, ★ = Hinweis von einem Gossip Stone o. ä.)
-  * die zuletzt erhaltenen Items
-Es aktualisiert sich bei jedem Fund von selbst.
+Overlay und HUD im Spiel (Ziele und "wohin als Nächstes")
+---------------------------------------------------------
+Sobald du verbunden bist: "🗺 Overlay" klicken.
+* Im Spiel erscheint oben rechts ein HUD (Klicks gehen hindurch), solange das Spiel im
+  Vordergrund ist. Es zeigt, wo du bist, was du HIER noch erreichen kannst (★ = Hinweis),
+  dein nächstes Ziel – und in Tempeln/Dungeons kurze Tipps (welche Items, Rätsel, Boss).
+  Ist hier nichts mehr offen, nennt es die nächsten Gebiete mit erreichbaren Orten.
+* Das Overlay-Fenster zeigt dasselbe ausführlicher: Ziel mit Fortschritt, alles Erreichbare
+  nach Gebiet/Tempel (aufklappbar), zuletzt erhaltene Items.
+* "HUD im Spiel" im Overlay abhaken, wenn du es nicht willst.
+* Spiel im Fenster- oder randlosen Vollbildmodus spielen (SoH: F11), sonst ist das HUD
+  nicht sichtbar. Die Ortserkennung startet, sobald das Spiel über den Launcher gestartet
+  wurde.
 
 Hosten
 ------

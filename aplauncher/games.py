@@ -42,6 +42,9 @@ def configure_soh(paths: Paths, address: str, name: str, password: str):
     ap["ServerAddress"] = server_address(address)
     ap["SlotName"] = name
     ap["Password"] = password or ""
+    # Sail reports scene changes to the launcher (HUD shows what is left where Link is).
+    sail = cfg["CVars"]["gRemote"].setdefault("Sail", {})
+    sail.update({"Enabled": 1, "Host": "127.0.0.1", "Port": 43384})
     cfg_path.write_text(json.dumps(cfg, indent=4), encoding="utf-8")
 
 

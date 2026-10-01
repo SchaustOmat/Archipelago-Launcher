@@ -20,6 +20,11 @@ Ein Programm für eine lokale Archipelago-Multiworld mit **Super Mario 64** (sm6
 Brücke (`bridge/aplauncher_bridge`, als apworld installiert) innerhalb von Archipelago ansteuert und als
 JSON an den Launcher gibt.
 
+Das **HUD im Spiel** (klick-durchlässig, klebt am Spielfenster) zeigt, was am aktuellen Ort noch offen ist,
+plus kurze Dungeon-Tipps (`aplauncher/places.py`). Den Ort liefert bei SoH dessen Sail-Schnittstelle
+(der Launcher lauscht auf 127.0.0.1:43384, SoH wird beim Start dafür konfiguriert), bei Mario 64 ein
+kleiner Patch (`patches/sm64_report_location.patch`), der das Level in `%APPDATA%\sm64ex` schreibt.
+
 ## Für den Host
 1. Wie oben installieren (oder Spiel „Kein Spiel (nur hosten)“).
 2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.

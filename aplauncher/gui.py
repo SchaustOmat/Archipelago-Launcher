@@ -10,7 +10,7 @@ import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import apclient, config, games, host, lobby, overlay, roms, theme, widgets
+from . import apclient, config, games, host, lobby, overlay, roms, sail, theme, widgets
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
 
@@ -40,6 +40,9 @@ class App:
         self.ap_connected = False
         self.friend_address = ""
         self.overlay: overlay.Overlay | None = None
+        # SoH reports scene changes here (Sail); the overlay/HUD use it to know where Link is.
+        self.sail = sail.SailServer()
+        self.sail.start()
         self.session_zip = None
         self._build()
         self._load_fields()
@@ -871,9 +874,9 @@ class App:
             messagebox.showinfo("Overlay", "Bitte einmal 'Installieren / Prüfen' klicken (Overlay-Logik fehlt noch).")
             return
         inst.write_bridge_world()
-        self.overlay = overlay.Overlay(self.root, self.paths, addr, name, pw, yaml_dir,
-                                       on_close=self._overlay_closed)
-        self._log("Overlay geöffnet. Es zeigt dein Ziel und was du gerade erreichen kannst.")
+        self.overlay = overlay.Overlay(self.root, self.paths, addr, name, pw, yaml_dir, self.game,
+                                       sail=self.sail, on_close=self._overlay_closed)
+        self._log("Overlay geöffnet. Im Spiel erscheint oben rechts das HUD mit dem, was hier noch offen ist.")
 
     def _overlay_closed(self):
         self.overlay = None
@@ -1012,6 +1015,7 @@ class App:
                 return
         self._save_fields()
         self._teardown()
+        self.sail.stop()
         self.root.destroy()
 
     def run(self):

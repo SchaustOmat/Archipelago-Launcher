@@ -1,0 +1,44 @@
+diff --git a/src/game/level_update.c b/src/game/level_update.c
+index ce05cd9..03d35c3 100644
+--- a/src/game/level_update.c
++++ b/src/game/level_update.c
+@@ -36,6 +36,8 @@
+ #include "pc/pc_main.h"
+ #include "pc/cliopts.h"
+ #include "pc/configfile.h"
++#include "pc/fs/fs.h"
++#include <stdio.h>
+ 
+ #define PLAY_MODE_NORMAL 0
+ #define PLAY_MODE_PAUSED 2
+@@ -1308,6 +1310,22 @@ s32 init_level(void) {
+ /**
+  * Initialize the current level if initOrUpdate is 0, or update the level if it is 1.
+  */
++// APLauncher: report where Mario is so the launcher HUD can show what is left in this course.
++static void aplauncher_report_location(void) {
++    static s16 lastLevel = -1, lastCourse = -1, lastArea = -1;
++    if (gCurrLevelNum == lastLevel && gCurrCourseNum == lastCourse && gCurrAreaIndex == lastArea) {
++        return;
++    }
++    lastLevel = gCurrLevelNum;
++    lastCourse = gCurrCourseNum;
++    lastArea = gCurrAreaIndex;
++    FILE *f = fopen(fs_get_write_path("aplauncher_location.txt"), "w");
++    if (f) {
++        fprintf(f, "%d %d %d\n", lastLevel, lastCourse, lastArea);
++        fclose(f);
++    }
++}
++
+ s32 lvl_init_or_update(s16 initOrUpdate, UNUSED s32 unused) {
+     s32 result = 0;
+ 
+@@ -1317,6 +1335,7 @@ s32 lvl_init_or_update(s16 initOrUpdate, UNUSED s32 unused) {
+             break;
+         case 1:
+             result = update_level();
++            aplauncher_report_location();
+             break;
+     }
+ 
