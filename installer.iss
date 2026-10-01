@@ -37,12 +37,14 @@ Name: "desktopicon"; Description: "Verknüpfung auf dem Desktop erstellen"; Grou
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "ArchipelagoLauncher.exe"; Flags: ignoreversion
 Source: "ANLEITUNG.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+; Separate icon file: shortcuts use it, so Windows' icon cache of the exe never shows an old picture.
+Source: "assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Archipelago Launcher"; Filename: "{app}\ArchipelagoLauncher.exe"
+Name: "{group}\Archipelago Launcher"; Filename: "{app}\ArchipelagoLauncher.exe"; IconFilename: "{app}\icon.ico"
 Name: "{group}\Anleitung"; Filename: "{app}\ANLEITUNG.txt"
 Name: "{group}\Archipelago Launcher deinstallieren"; Filename: "{uninstallexe}"
-Name: "{userdesktop}\Archipelago Launcher"; Filename: "{app}\ArchipelagoLauncher.exe"; Tasks: desktopicon
+Name: "{userdesktop}\Archipelago Launcher"; Filename: "{app}\ArchipelagoLauncher.exe"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\ArchipelagoLauncher.exe"; Description: "Archipelago Launcher jetzt starten"; Flags: nowait postinstall skipifsilent
