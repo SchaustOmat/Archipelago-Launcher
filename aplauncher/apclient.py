@@ -112,7 +112,9 @@ class APWatcher:
                 self.location_names[game] = {v: k for k, v in pkg.get("location_name_to_id", {}).items()}
         elif cmd == "ConnectionRefused":
             errs = msg.get("errors", [])
-            text = {"InvalidSlot": f"Spielername '{self.slot_name}' ist in dieser Multiworld nicht vorhanden.",
+            text = {"InvalidSlot": f"'{self.slot_name}' ist in der laufenden Multiworld nicht dabei. "
+                                   "Der Host muss 'Beenden / Verlassen' und dann 'Server hosten' klicken; "
+                                   "danach hier 'Beenden / Verlassen' und 'Beitreten'.",
                     "InvalidPassword": "Falsches Server-Passwort."}
             raise FatalError(" ".join(text.get(e, e) for e in errs) or "Verbindung abgelehnt.")
         elif cmd == "Connected":

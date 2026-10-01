@@ -568,7 +568,8 @@ class App:
             self.client_poll_stop.clear()
             threading.Thread(target=self._client_poll, args=(addr, name), daemon=True).start()
         else:
-            self._log(f"Keine Lobby ({result['error']}). Versuche direkt mit dem Archipelago-Server zu verbinden ...")
+            self._log("Beim Host ist keine Lobby offen – dort läuft vermutlich schon eine Multiworld. "
+                      "Verbinde mit dem laufenden Spiel ...")
             self._start_watcher(addr, name)
         self._refresh_buttons()
 

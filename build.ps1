@@ -34,4 +34,29 @@ if ($Full) {
     .\.venv\Scripts\pyinstaller @common --name ArchipelagoLauncher-Full --add-data "$payload;payload"
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller (full) failed' }
 }
-Get-ChildItem dist\*.exe | Select-Object Name, @{n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }
+# Ready-to-send folders and zips: release\ArchipelagoLauncher[-Full]_<version>.zip
+$ver = .\.venv\Scripts\python -c "from aplauncher import config; print(config.APP_VERSION)"
+New-Item -ItemType Directory -Force release | Out-Null
+foreach ($exe in Get-ChildItem dist\*.exe) {
+    $name = $exe.BaseName
+    $dir = "release\$name"
+    Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    Copy-Item $exe.FullName "$dir\ArchipelagoLauncher.exe"
+    Copy-Item ANLEITUNG.txt $dir
+    $zip = "release\${name}_$ver.zip"
+    Remove-Item $zip -ErrorAction SilentlyContinue
+    Compress-Archive -Path $dir -DestinationPath $zip
+}
+# Setup.exe (Inno Setup 6; per-user install, no admin)
+$iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($iscc) {
+    foreach ($exe in Get-ChildItem dist\*.exe) {
+        & $iscc /Q "/DAppVersion=$ver" "/DSourceExe=$($exe.FullName)" "/DOutName=$($exe.BaseName)-Setup" installer.iss
+        if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed for $($exe.Name)" }
+    }
+} else {
+    Write-Host 'Inno Setup 6 not found, skipping Setup.exe (winget install JRSoftware.InnoSetup)'
+}
+Get-ChildItem release\*.zip, release\*.exe | Select-Object Name, @{n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }

@@ -1,0 +1,57 @@
+ARCHIPELAGO LAUNCHER – Super Mario 64 + Ocarina of Time
+=======================================================
+
+Was du brauchst
+---------------
+- Windows 10 oder 11 (64 Bit) und Internet
+- Deine eigene ROM (wird NICHT mitgeliefert):
+    * Super Mario 64: USA- oder Japan-Version (.z64 / .n64 / .v64)
+    * Ocarina of Time: jede Version außer Master Quest
+  ZIP-Dateien vorher entpacken.
+
+Starten
+-------
+1. ZIP entpacken (Rechtsklick -> "Alle extrahieren") und ArchipelagoLauncher.exe starten.
+2. Falls "Der Computer wurde durch Windows geschützt" erscheint:
+   "Weitere Informationen" -> "Trotzdem ausführen".
+   (Das Programm ist nur nicht digital signiert.)
+
+Einrichten (einmalig)
+---------------------
+1. Spielername eintragen (max. 16 Zeichen, jeder einen anderen Namen).
+2. Spiel auswählen und mit "Durchsuchen ..." deine ROM wählen.
+   Ein grüner Haken zeigt, dass die ROM passt.
+3. "Installieren / Prüfen" klicken und warten:
+    * Ocarina of Time: ca. 5 Minuten
+    * Super Mario 64: ca. 10-15 Minuten (das Spiel wird auf deinem PC gebaut)
+   Alles landet in C:\APLauncher.
+4. Optional: "Optionen bearbeiten (YAML)" für Spieleinstellungen.
+
+Mitspielen
+----------
+1. Die Adresse vom Host bei "Server-Adresse" eintragen (z. B. 84.123.45.67:38281)
+   und ggf. das Passwort.
+2. "Beitreten" klicken. Du siehst dich in der Spielerliste.
+3. Wenn der Host startet, wird "▶ Spiel starten" klickbar.
+    * Mario 64 verbindet sich automatisch.
+    * Ocarina of Time: auf dem Titelbildschirm einen NEUEN Spielstand anlegen und
+      dabei "Archipelago" wählen. Jede neue Multiworld braucht einen neuen Spielstand.
+
+Hosten
+------
+1. "Server hosten" klicken. Die Adresse für Freunde steht grün im Fenster –
+   anklicken kopiert sie.
+2. "Port testen". Wenn nicht erreichbar: im Router Port 38281 (TCP) auf deinen PC
+   weiterleiten ODER "playit.gg" benutzen (dann die playit-Adresse verschicken).
+   Fragt die Windows-Firewall nach: "Zulassen".
+3. Wenn alle in der Liste sind: "Multiworld generieren & starten".
+4. Weiterspielen an einem anderen Tag: "Spielstand fortsetzen ...".
+
+Probleme
+--------
+- "... ist in der laufenden Multiworld nicht dabei": Der Host muss "Beenden / Verlassen"
+  und dann "Server hosten" klicken, danach erneut "Beitreten".
+- OoT trennt sofort ("incorrect slot"): neuen Archipelago-Spielstand anlegen.
+- Fehler mit "VCRUNTIME140.dll": "Microsoft Visual C++ Redistributable x64" von
+  microsoft.com installieren.
+- SoH-Texturpakete (.o2r/.otr): Button "SoH Mods/Texturen".
