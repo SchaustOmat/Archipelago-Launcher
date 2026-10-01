@@ -680,15 +680,32 @@ class App:
             return
         win = tk.Toplevel(self.root)
         win.title("Spielstand fortsetzen")
-        win.geometry("620x300")
         win.configure(bg=theme.BG)
+        # Tied to the launcher and modal, so it can never end up hidden behind it.
+        win.transient(self.root)
+        self.root.update_idletasks()
+        w, h = 640, 340
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - w) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - h) // 3
+        win.geometry(f"{w}x{h}+{x}+{y}")
         theme.dark_titlebar(win)
-        lb = tk.Listbox(win, font=("Segoe UI", 10), activestyle="none")
+        tk.Label(win, text="Welche Multiworld möchtest du fortsetzen?", bg=theme.BG, fg=theme.FG,
+                 font=("Segoe UI Semibold", 11)).pack(anchor="w", padx=14, pady=(12, 0))
+        tk.Label(win, text="Doppelklick oder Enter startet den Server mit diesem Spielstand.", bg=theme.BG,
+                 fg=theme.MUTED, font=("Segoe UI", 9)).pack(anchor="w", padx=14)
+        lb = tk.Listbox(win, font=("Segoe UI", 11), activestyle="none", exportselection=False)
         theme.style_text(lb)
-        lb.pack(fill="both", expand=True, padx=12, pady=12)
+        lb.pack(fill="both", expand=True, padx=14, pady=10)
         for z in sessions:
-            lb.insert("end", f"{z.parent.name}   –   {', '.join(host.session_players(z))}")
+            stamp = z.parent.name  # YYYY-MM-DD_HH-MM-SS
+            try:
+                d, t = stamp.split("_")
+                stamp = f"{d[8:10]}.{d[5:7]}.{d[0:4]}  {t[0:2]}:{t[3:5]}"
+            except (ValueError, IndexError):
+                pass
+            lb.insert("end", f"  {stamp}    –    {', '.join(host.session_players(z))}")
         lb.selection_set(0)
+        lb.activate(0)
 
         def go():
             sel = lb.curselection()
@@ -702,7 +719,13 @@ class App:
             self._show_public_address()
             self.background(lambda: self._start_server(paths, z, port, pw), done=lambda: self._host_running(z))
         widgets.RoundButton(win, "▶  Diesen Spielstand starten", go, "primary", bg=theme.BG).pack(pady=(0, 12))
+        lb.bind("<Double-Button-1>", lambda e: go())
+        win.bind("<Return>", lambda e: go())
+        win.bind("<Escape>", lambda e: win.destroy())
         widgets.fade_in(win, 180)
+        win.lift()
+        win.grab_set()
+        lb.focus_set()
 
     def _start_server(self, paths, zip_path, port, pw):
         self.server = host.Server(paths, zip_path, port, pw, self.log_threadsafe)
