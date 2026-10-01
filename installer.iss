@@ -24,6 +24,7 @@ OutputBaseFilename={#OutName}_{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=assets\icon.ico
 UninstallDisplayIcon={app}\ArchipelagoLauncher.exe
 UninstallDisplayName=Archipelago Launcher
 

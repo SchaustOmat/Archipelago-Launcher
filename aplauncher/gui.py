@@ -36,6 +36,10 @@ class App:
         self.root.minsize(900, 660)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         theme.apply(self.root)
+        try:  # default= applies the icon to every window (overlay, dialogs) too
+            self.root.iconbitmap(default=str(config.bundle_dir() / "assets" / "icon.ico"))
+        except tk.TclError:
+            pass
         theme.dark_titlebar(self.root)
         self.ap_connected = False
         self.friend_address = ""

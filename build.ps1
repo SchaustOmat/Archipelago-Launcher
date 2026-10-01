@@ -10,7 +10,8 @@ if (-not (Test-Path .venv)) { py -3.14 -m venv .venv }
 
 # bridge\ is zipped into an apworld at install time, so it ships as plain files.
 $common = @('--noconfirm', '--onefile', '--windowed', '--clean', '--collect-submodules', 'websockets',
-            '--add-data', 'bridge;bridge', '--add-data', 'patches;patches', 'main.py')
+            '--add-data', 'bridge;bridge', '--add-data', 'patches;patches',
+            '--add-data', 'assets;assets', '--icon', 'assets\icon.ico', 'main.py')
 .\.venv\Scripts\pyinstaller @common --name ArchipelagoLauncher
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
 
