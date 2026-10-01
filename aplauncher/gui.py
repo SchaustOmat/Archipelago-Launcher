@@ -8,7 +8,7 @@ import uuid
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import apclient, config, games, host, lobby, roms, theme
+from . import apclient, config, games, host, lobby, overlay, roms, theme
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
 
@@ -37,6 +37,8 @@ class App:
         theme.dark_titlebar(self.root)
         self.ap_connected = False
         self.friend_address = ""
+        self.overlay: overlay.Overlay | None = None
+        self.session_zip = None
         self._build()
         self._load_fields()
         self.root.after(POLL_MS, self._drain)
@@ -106,8 +108,9 @@ class App:
         self.b_gen = ttk.Button(btns, text="Multiworld generieren & starten", command=self.host_generate, style="Accent.TButton")
         self.b_resume = ttk.Button(btns, text="Spielstand fortsetzen ...", command=self.host_resume)
         self.b_play = ttk.Button(btns, text="▶ Spiel starten", command=self.play, style="Accent.TButton")
+        self.b_overlay = ttk.Button(btns, text="🗺 Overlay", command=self.toggle_overlay)
         self.b_stop = ttk.Button(btns, text="Beenden / Verlassen", command=self.stop_all)
-        for b in (self.b_host, self.b_join, self.b_gen, self.b_resume, self.b_play, self.b_stop):
+        for b in (self.b_host, self.b_join, self.b_gen, self.b_resume, self.b_play, self.b_overlay, self.b_stop):
             b.pack(side="left", padx=4)
         net = ttk.Frame(mw)
         net.grid(row=2, column=0, columnspan=6, sticky="we", pady=(4, 0))
@@ -232,6 +235,7 @@ class App:
         self.b_stop.configure(state="disabled" if idle else "normal")
         # Only once the real Archipelago server answers; before that the port belongs to the lobby.
         self.b_play.configure(state="normal" if self.game in GAMES and self.ap_connected else "disabled")
+        self.b_overlay.configure(state="normal" if self.game in GAMES and self.ap_connected else "disabled")
         self.b_install.configure(state="disabled" if self.busy else "normal")
 
     # ================= thread-safe plumbing =================
@@ -531,6 +535,7 @@ class App:
 
     def _host_running(self, zip_path):
         self.lobby = None
+        self.session_zip = zip_path
         self.set_state("Server läuft. Alle können jetzt '▶ Spiel starten' drücken.")
         names = host.session_players(zip_path)
         me = self.v_name.get().strip()
@@ -644,6 +649,36 @@ class App:
         except (games.GameError, OSError) as e:
             messagebox.showerror("Spiel starten", str(e))
 
+    # ================= overlay =================
+    def toggle_overlay(self):
+        if self.overlay:
+            self.overlay.close()
+            return
+        name, pw = self.v_name.get().strip(), self.v_pw.get()
+        addr = f"localhost:{self.port}" if self.mode == "host" else self.v_addr.get().strip()
+        # Games without built-in tracker support (Mario 64) rebuild their logic from the player's YAML.
+        if self.session_zip:
+            yaml_dir = self.session_zip.parent / "players"
+        else:
+            yaml_dir = self.paths.root / "overlay" / "yaml"
+            yaml_dir.mkdir(parents=True, exist_ok=True)
+            for old in yaml_dir.glob("*.yaml"):
+                old.unlink()
+            text = self._my_yaml()
+            if text:
+                (yaml_dir / "me.yaml").write_text(host.set_yaml_name(text, name), encoding="utf-8")
+        inst = self._installer()
+        if not inst.archipelago_ok():
+            messagebox.showinfo("Overlay", "Bitte einmal 'Installieren / Prüfen' klicken (Overlay-Logik fehlt noch).")
+            return
+        inst.write_bridge_world()
+        self.overlay = overlay.Overlay(self.root, self.paths, addr, name, pw, yaml_dir,
+                                       on_close=self._overlay_closed)
+        self._log("Overlay geöffnet. Es zeigt dein Ziel und was du gerade erreichen kannst.")
+
+    def _overlay_closed(self):
+        self.overlay = None
+
     # ================= network helpers =================
     def port_test(self):
         port = self.port
@@ -707,6 +742,9 @@ class App:
 
     def _teardown(self):
         self.client_poll_stop.set()
+        if self.overlay:
+            self.overlay.close()
+        self.session_zip = None
         self.ap_connected = False
         self._set_friend_address("")
         if self.mode == "client" and self.v_addr.get().strip():

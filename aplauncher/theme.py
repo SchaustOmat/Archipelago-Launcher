@@ -73,6 +73,9 @@ def apply(root: tk.Tk):
     s.map("Vertical.TScrollbar", background=[("active", BUTTON_HI)])
     s.configure("Horizontal.TProgressbar", background=ACCENT, troughcolor=FIELD, bordercolor=BORDER,
                 lightcolor=ACCENT, darkcolor=ACCENT)
+    s.configure("TCheckbutton", background=BG, foreground=FG, indicatorbackground=FIELD,
+                indicatorforeground=ACCENT_HI, indicatorcolor=FIELD)
+    s.map("TCheckbutton", background=[("active", BG)], indicatorcolor=[("selected", ACCENT)])
     s.configure("TPanedwindow", background=BG)
     s.configure("Sash", sashthickness=6, gripcount=0, background=BG)
 

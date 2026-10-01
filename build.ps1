@@ -8,20 +8,23 @@ Set-Location $PSScriptRoot
 if (-not (Test-Path .venv)) { py -3.14 -m venv .venv }
 .\.venv\Scripts\python -m pip install -q -r requirements.txt pyinstaller
 
-$common = @('--noconfirm', '--onefile', '--windowed', '--clean', '--collect-submodules', 'websockets', 'main.py')
+# bridge\ is zipped into an apworld at install time, so it ships as plain files.
+$common = @('--noconfirm', '--onefile', '--windowed', '--clean', '--collect-submodules', 'websockets',
+            '--add-data', 'bridge;bridge', 'main.py')
 .\.venv\Scripts\pyinstaller @common --name ArchipelagoLauncher
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
 
 if ($Full) {
     # File names must match what aplauncher/install.py asks the payload for.
-    $cfg = .\.venv\Scripts\python -c "from aplauncher import config as c; print(c.AP_URL); print(c.AP_VERSION); print(c.SOH_ZIP_URL); print(c.SOH_APWORLD_URL); print(c.SOH_VERSION)"
-    $apUrl, $apVer, $sohUrl, $worldUrl, $sohVer = $cfg
+    $cfg = .\.venv\Scripts\python -c "from aplauncher import config as c; print(c.AP_URL); print(c.AP_VERSION); print(c.SOH_ZIP_URL); print(c.SOH_APWORLD_URL); print(c.SOH_VERSION); print(c.UT_URL); print(c.UT_VERSION)"
+    $apUrl, $apVer, $sohUrl, $worldUrl, $sohVer, $utUrl, $utVer = $cfg
     $payload = 'build\payload'
     New-Item -ItemType Directory -Force $payload | Out-Null
     $files = @{
         "Setup.Archipelago.$apVer.exe"          = $apUrl
         "SoH_Archipelago_${sohVer}_Windows.zip" = $sohUrl
         "oot_soh-$sohVer.apworld"               = $worldUrl
+        "tracker-$utVer.apworld"                = $utUrl
     }
     foreach ($name in $files.Keys) {
         $dest = Join-Path $payload $name

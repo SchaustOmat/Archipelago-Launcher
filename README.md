@@ -13,6 +13,13 @@ Ein Programm für eine lokale Archipelago-Multiworld mit **Super Mario 64** (sm6
    - Mario 64 verbindet sich automatisch.
    - SoH: im Dateiauswahl-Menü „Archipelago“ wählen; Server/Name/Passwort sind schon eingetragen.
 
+## Overlay
+**🗺 Overlay** öffnet ein Fenster über dem Spiel: Ziel-Fortschritt, alle gerade erreichbaren Orte
+(nach Gebiet) und zuletzt erhaltene Items. Die Logik kommt vom
+[Universal Tracker](https://github.com/FarisTheAncient/Archipelago) (`tracker.apworld`), den eine kleine
+Brücke (`bridge/aplauncher_bridge`, als apworld installiert) innerhalb von Archipelago ansteuert und als
+JSON an den Launcher gibt.
+
 ## Für den Host
 1. Wie oben installieren (oder Spiel „Kein Spiel (nur hosten)“).
 2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.

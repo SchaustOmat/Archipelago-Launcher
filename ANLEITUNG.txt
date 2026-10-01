@@ -39,6 +39,15 @@ Mitspielen
     * Ocarina of Time: auf dem Titelbildschirm einen NEUEN Spielstand anlegen und
       dabei "Archipelago" wählen. Jede neue Multiworld braucht einen neuen Spielstand.
 
+Overlay (Ziele und "wohin als Nächstes")
+----------------------------------------
+Sobald du verbunden bist: "🗺 Overlay" klicken. Ein kleines Fenster bleibt über dem Spiel und zeigt:
+  * dein Ziel und wie weit du bist (z. B. Sterne, Amulette, Schlüssel)
+  * alle Orte, die du mit deinen aktuellen Items erreichen kannst, nach Gebiet sortiert
+    (aufklappen für die einzelnen Orte, ★ = Hinweis von einem Gossip Stone o. ä.)
+  * die zuletzt erhaltenen Items
+Es aktualisiert sich bei jedem Fund von selbst.
+
 Hosten
 ------
 1. "Server hosten" klicken. Die Adresse für Freunde steht grün im Fenster –

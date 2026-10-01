@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Archipelago Launcher"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
@@ -18,7 +18,11 @@ _SOH_BASE = "https://github.com/HarbourMasters/Archipelago-SoH/releases/download
 SOH_ZIP_URL = f"{_SOH_BASE}/SoH_Archipelago_1-4-2_Windows.zip"
 SOH_APWORLD_URL = f"{_SOH_BASE}/oot_soh.apworld"
 
-MSYS2_URL = "https://repo.msys2.org/distrib/msys2-x86_64-latest.sfx.exe"
+# Universal Tracker provides the "what is in logic" calculation for the overlay.
+UT_VERSION = "0.3.4"
+UT_URL = f"https://github.com/FarisTheAncient/Archipelago/releases/download/Tracker_v{UT_VERSION}/tracker.apworld"
+
+MSYS2_URL ="https://repo.msys2.org/distrib/msys2-x86_64-latest.sfx.exe"
 MSYS2_PACKAGES = [
     "unzip", "git", "make", "python3",
     "mingw-w64-x86_64-gcc", "mingw-w64-x86_64-glew",

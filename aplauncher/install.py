@@ -65,7 +65,25 @@ class Installer:
 
     # ---------- Archipelago ----------
     def archipelago_ok(self) -> bool:
-        return self.p.ap_generate.is_file() and (self.p.ap / "custom_worlds" / "oot_soh.apworld").is_file()
+        worlds = self.p.ap / "custom_worlds"
+        return self.p.ap_generate.is_file() and all(
+            (worlds / w).is_file() for w in ("oot_soh.apworld", "tracker.apworld", "aplauncher_bridge.apworld"))
+
+    def install_overlay_worlds(self):
+        """Universal Tracker plus our bridge component, both loaded by Archipelago as custom worlds."""
+        worlds = self.p.ap / "custom_worlds"
+        ut = self.download(config.UT_URL, f"tracker-{config.UT_VERSION}.apworld")
+        shutil.copyfile(ut, worlds / "tracker.apworld")
+        self.write_bridge_world()
+
+    def write_bridge_world(self):
+        """Rewritten whenever the overlay opens, so a launcher update also updates the bridge."""
+        worlds = self.p.ap / "custom_worlds"
+        src = config.bundle_dir() / "bridge"
+        with zipfile.ZipFile(worlds / "aplauncher_bridge.apworld", "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in (src / "aplauncher_bridge").rglob("*"):
+                if f.is_file() and "__pycache__" not in f.parts:
+                    zf.write(f, f.relative_to(src).as_posix())
 
     def install_archipelago(self):
         if not self.p.ap_generate.is_file():
@@ -80,6 +98,7 @@ class Installer:
         world = self.download(config.SOH_APWORLD_URL, f"oot_soh-{config.SOH_VERSION}.apworld")
         (self.p.ap / "custom_worlds").mkdir(exist_ok=True)
         shutil.copyfile(world, self.p.ap / "custom_worlds" / "oot_soh.apworld")
+        self.install_overlay_worlds()
         self.log("Archipelago ist bereit.")
 
     def ensure_templates(self):
