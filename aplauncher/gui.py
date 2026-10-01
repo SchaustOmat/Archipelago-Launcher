@@ -86,6 +86,10 @@ class App:
         ttk.Button(row, text="Ordner öffnen", command=lambda: self._open(self.paths.root)).pack(side="left", padx=6)
         self.b_mods = ttk.Button(row, text="SoH Mods/Texturen", command=self.open_soh_mods)
         self.b_mods.pack(side="left", padx=6)
+        self.v_invert = tk.BooleanVar()
+        self.c_invert = ttk.Checkbutton(me, text="Mario: Kamera links/rechts tauschen", variable=self.v_invert,
+                                        command=self._save_fields)
+        self.c_invert.grid(row=5, column=0, columnspan=3, sticky="w", padx=6, pady=(6, 0))
         self.l_inst = ttk.Label(row, text="")
         self.l_inst.pack(side="left", padx=12)
         me.columnconfigure(3, weight=1)
@@ -177,6 +181,7 @@ class App:
         self.v_addr.set(self.s["address"])
         self.v_pw.set(self.s["password"])
         self.v_port.set(str(self.s.get("port", config.DEFAULT_PORT)))
+        self.v_invert.set(bool(self.s.get("sm64_invert_camera_x")))
         self._game_changed()
         self._refresh_buttons()
 
@@ -184,7 +189,8 @@ class App:
         if self.game in GAMES:
             self.s["roms"][self.game] = self.v_rom.get().strip()
         self.s.update(name=self.v_name.get().strip(), game=self.game, root=self.v_root.get().strip(),
-                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port)
+                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port,
+                      sm64_invert_camera_x=self.v_invert.get())
         config.save_settings(self.s)
 
     def _game_changed(self):
@@ -652,7 +658,7 @@ class App:
         try:
             if self.game == "sm64":
                 region = self._installer().sm64_region_built()
-                games.launch_sm64(self.paths, region, addr, name, pw)
+                games.launch_sm64(self.paths, region, addr, name, pw, self.v_invert.get())
                 self._log("Super Mario 64 gestartet (verbindet sich automatisch).")
             elif self.game == "soh":
                 games.launch_soh(self.paths, addr, name, pw)

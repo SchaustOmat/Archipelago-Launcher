@@ -79,3 +79,4 @@ Probleme
 - Fehler mit "VCRUNTIME140.dll": "Microsoft Visual C++ Redistributable x64" von
   microsoft.com installieren.
 - SoH-Texturpakete (.o2r/.otr): Button "SoH Mods/Texturen".
+- Mario 64: Häkchen "Kamera links/rechts tauschen" vor dem Spielstart setzen.

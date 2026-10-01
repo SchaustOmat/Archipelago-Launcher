@@ -82,9 +82,11 @@ def apply(root: tk.Tk):
 
 def style_text(widget):
     """Colours for plain tk Text/Listbox widgets, which ttk styles don't reach."""
-    widget.configure(bg=FIELD, fg=FG, insertbackground=FG, selectbackground=ACCENT,
+    widget.configure(bg=FIELD, fg=FG, selectbackground=ACCENT,
                      selectforeground="#ffffff", highlightthickness=1, highlightbackground=BORDER,
                      highlightcolor=ACCENT, relief="flat", borderwidth=0)
+    if "insertbackground" in widget.keys():  # Text has a cursor, Listbox does not
+        widget.configure(insertbackground=FG)
 
 
 def dark_titlebar(win):

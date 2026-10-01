@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Archipelago Launcher"
-APP_VERSION = "0.3.1"
+APP_VERSION = "0.3.2"
 DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
@@ -30,8 +30,9 @@ MSYS2_PACKAGES = [
 ]
 SM64_REPO = "https://github.com/N00byKing/sm64ex"
 SM64_BRANCH = "archipelago"
-# Patches shipped in the sm64ex repo; 60 FPS renders interpolated frames (logic stays at 30).
-SM64_PATCHES = ["enhancements/60fps_ex.patch"]
+# 60 FPS (from the sm64ex repo) renders interpolated frames, logic stays at 30.
+# "launcher:" patches ship with the launcher (patches/); camera_invert_x adds a config switch.
+SM64_PATCHES = ["enhancements/60fps_ex.patch", "launcher:sm64_camera_invert_x.patch"]
 
 # playit 1.x ships as an MSI (service + tray + CLI); the bare exe is only the headless daemon.
 PLAYIT_MSI_URL = "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.msi"
@@ -70,6 +71,7 @@ DEFAULT_SETTINGS = {
     "address": "localhost:38281",
     "password": "",
     "port": DEFAULT_PORT,
+    "sm64_invert_camera_x": False,
 }
 
 

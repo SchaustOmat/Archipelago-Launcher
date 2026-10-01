@@ -178,9 +178,15 @@ class Installer:
         if self.sm64_patches_applied():
             return
         # Start from a clean tree so a changed patch list never stacks on old patches.
-        self.bash(f"cd '{src}' && git checkout -- . && git clean -fdq -e 'baserom.*' -e build")
+        self.bash(f"cd '{src}' && git checkout -- . && git clean -fdq -e 'baserom.*' -e build -e .aplauncher")
         for patch in config.SM64_PATCHES:
             self.log(f"Wende Patch an: {patch}")
+            if patch.startswith("launcher:"):
+                name = patch.split(":", 1)[1]
+                local = self.p.sm64 / ".aplauncher" / name
+                local.parent.mkdir(exist_ok=True)
+                shutil.copyfile(config.bundle_dir() / "patches" / name, local)
+                patch = f".aplauncher/{name}"
             self.bash(f"cd '{src}' && git apply '{patch}'")
         self._patch_marker().write_text("\n".join(config.SM64_PATCHES))
 
