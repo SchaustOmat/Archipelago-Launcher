@@ -28,7 +28,7 @@ Einrichten (einmalig, Tab "⚙ Einrichtung")
    Fragt Windows "Möchten Sie zulassen, dass diese App Änderungen vornimmt?"
    (beim Installieren von Archipelago): "Ja".
 4. Optional: "YAML bearbeiten" bzw. "Options Creator" für Spieleinstellungen.
-   Mario 64: Häkchen "Kamera links/rechts tauschen", OoT: "SoH Mods / Texturen".
+   OoT: "SoH Mods / Texturen" für Texturpakete.
 
 Mitspielen (Tab "🎮 Spielen")
 -----------------------------
@@ -82,4 +82,3 @@ Probleme
 - Fehler mit "VCRUNTIME140.dll": "Microsoft Visual C++ Redistributable x64" von
   microsoft.com installieren.
 - SoH-Texturpakete (.o2r/.otr): Button "SoH Mods/Texturen".
-- Mario 64: Häkchen "Kamera links/rechts tauschen" vor dem Spielstart setzen.

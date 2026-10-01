@@ -2,7 +2,6 @@
 import json
 import os
 import subprocess
-from pathlib import Path
 
 from .config import Paths
 
@@ -19,23 +18,13 @@ def server_address(address: str) -> str:
     return a if ":" in a else f"{a}:38281"
 
 
-def set_sm64_option(key: str, value: str):
-    """sm64ex keeps its settings in %APPDATA%/sm64ex/sm64config.txt as 'key value' lines."""
-    cfg = Path(os.environ.get("APPDATA", Path.home())) / "sm64ex" / "sm64config.txt"
-    cfg.parent.mkdir(parents=True, exist_ok=True)
-    lines = cfg.read_text(encoding="utf-8").splitlines() if cfg.is_file() else []
-    lines = [l for l in lines if l.split(" ", 1)[0] != key] + [f"{key} {value}"]
-    cfg.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-def launch_sm64(paths: Paths, region: str, address: str, name: str, password: str, invert_camera_x=False):
+def launch_sm64(paths: Paths, region: str, address: str, name: str, password: str):
     exe = paths.sm64_exe_for(region)
     if not exe.is_file():
         raise GameError("Super Mario 64 ist noch nicht gebaut. Erst 'Installieren' ausführen.")
     args = [str(exe), "--sm64ap_name", name, "--sm64ap_ip", server_address(address)]
     if password:
         args += ["--sm64ap_passwd", password]
-    set_sm64_option("camera_invert_x", "true" if invert_camera_x else "false")
     env = dict(os.environ)
     # The MinGW build needs SDL2/GLEW/libgcc DLLs from MSYS2.
     env["PATH"] = str(paths.msys / "mingw64" / "bin") + os.pathsep + env.get("PATH", "")

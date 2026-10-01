@@ -201,9 +201,6 @@ class App:
                             height=32).pack(side="left")
         self.game_opts = ttk.Frame(oc, style="Card.TFrame")
         self.game_opts.pack(fill="x", pady=(10, 0))
-        self.v_invert = tk.BooleanVar()
-        self.c_invert = ttk.Checkbutton(self.game_opts, text="Kamera links/rechts tauschen (Mario 64)",
-                                        variable=self.v_invert, command=self._save_fields, style="Card.TCheckbutton")
         self.b_mods = widgets.RoundButton(self.game_opts, "🎨  SoH Mods / Texturen", self.open_soh_mods, height=32)
 
     def _build_net(self, page):
@@ -268,7 +265,6 @@ class App:
         self.v_addr.set(self.s["address"])
         self.v_pw.set(self.s["password"])
         self.v_port.set(str(self.s.get("port", config.DEFAULT_PORT)))
-        self.v_invert.set(bool(self.s.get("sm64_invert_camera_x")))
         self.v_public.set(self.s.get("public_address", ""))
         self._set_friend_address("")
         self._game_changed()
@@ -281,8 +277,7 @@ class App:
         if self.game in GAMES:
             self.s["roms"][self.game] = self.v_rom.get().strip()
         self.s.update(name=self.v_name.get().strip(), game=self.game, root=self.v_root.get().strip(),
-                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port,
-                      sm64_invert_camera_x=self.v_invert.get())
+                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port)
         config.save_settings(self.s)
 
     def _select_game(self, key):
@@ -300,11 +295,8 @@ class App:
         self.e_rom.configure(state=state)
         self.b_rom.configure(state=state)
         self.v_rom.set(self.s["roms"].get(g, "") if g in GAMES else "")
-        self.c_invert.pack_forget()
         self.b_mods.pack_forget()
-        if g == "sm64":
-            self.c_invert.pack(anchor="w")
-        elif g == "soh":
+        if g == "soh":
             self.b_mods.pack(anchor="w")
         self._check_rom()
         self._update_install_label()
@@ -847,7 +839,7 @@ class App:
         try:
             if self.game == "sm64":
                 region = self._installer().sm64_region_built()
-                games.launch_sm64(self.paths, region, addr, name, pw, self.v_invert.get())
+                games.launch_sm64(self.paths, region, addr, name, pw)
                 self._log("Super Mario 64 gestartet (verbindet sich automatisch).")
             elif self.game == "soh":
                 games.launch_soh(self.paths, addr, name, pw)
