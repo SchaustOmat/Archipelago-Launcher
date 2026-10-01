@@ -1,0 +1,34 @@
+# Archipelago Launcher (Mario 64 + Ocarina of Time)
+
+Ein Programm für eine lokale Archipelago-Multiworld mit **Super Mario 64** (sm64ex, 60 FPS) und
+**Ocarina of Time** (Ship of Harkinian). ROMs werden nie mitgeliefert – jeder wählt seine eigene.
+
+## Für Spieler
+1. `ArchipelagoLauncher.exe` starten.
+2. Spielername, Spiel und eigene ROM wählen → **Installieren / Prüfen**.
+   - Mario 64: ROM USA oder Japan (.z64/.n64/.v64). Das Spiel wird einmalig auf dem PC gebaut (ca. 3–10 Min.).
+   - OoT: jede Nicht-Master-Quest-Version. SoH erzeugt daraus einmalig seine Spieldaten.
+3. Optional: **Optionen bearbeiten (YAML)** oder **Options Creator**.
+4. Adresse des Hosts eintragen → **Beitreten**. Wenn der Host startet: **▶ Spiel starten**.
+   - Mario 64 verbindet sich automatisch.
+   - SoH: im Dateiauswahl-Menü „Archipelago“ wählen; Server/Name/Passwort sind schon eingetragen.
+
+## Für den Host
+1. Wie oben installieren (oder Spiel „Kein Spiel (nur hosten)“).
+2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.
+3. **Port testen**. Falls nicht erreichbar: Port 38281 TCP im Router weiterleiten, oder **playit.gg** nutzen.
+4. Wenn alle drin sind: **Multiworld generieren & starten**.
+5. Später weiterspielen: **Spielstand fortsetzen …**
+
+Alles wird nach `C:\APLauncher` installiert (Pfad ohne Leerzeichen, wegen MSYS2).
+
+## Bauen
+```powershell
+.\build.ps1          # dist\ArchipelagoLauncher.exe (lädt beim Setup herunter)
+.\build.ps1 -Full    # zusätzlich dist\ArchipelagoLauncher-Full.exe mit Archipelago + SoH eingebaut
+```
+Mario 64 kann nicht vorgebaut mitgeliefert werden (die exe enthält Daten aus der ROM).
+
+## Versionen
+Archipelago 0.6.7 · SoH Archipelago 1.4.2 · sm64ex `archipelago`-Branch (N00byKing) mit `60fps_ex.patch`.
+Test ohne Spiele: `python tests/flow_test.py C:\APLauncher`.
