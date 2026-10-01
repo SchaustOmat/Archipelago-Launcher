@@ -6,7 +6,8 @@ import threading
 import tkinter as tk
 import uuid
 import webbrowser
-from tkinter import filedialog, messagebox, ttk
+from pathlib import Path
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from . import apclient, config, games, host, lobby, overlay, roms, theme
 from .config import GAMES, NO_GAME, Paths
@@ -431,6 +432,10 @@ class App:
         self._host_lobby_tick()
 
     def _show_public_address(self):
+        if self.s.get("public_address"):
+            self._set_friend_address(self.s["public_address"])
+            return
+
         def work():
             ip = host.public_ip()
             self.call(self._set_friend_address, f"{ip}:{self.port}" if ip else "")
@@ -560,7 +565,14 @@ class App:
             try:
                 result["snap"] = lobby.join(addr, name, g, yaml_text, cid, pw)
             except lobby.LobbyError as e:
-                # No lobby: maybe the game is already running on that address.
+                if e.unreachable:
+                    raise RuntimeError(
+                        f"Der Host ist unter {addr} nicht erreichbar.\n\n"
+                        "• Stimmt die Adresse (mit :Port)?\n"
+                        "• Hat der Host 'Server hosten' geklickt?\n"
+                        "• Beim Host fehlt evtl. die Portfreigabe im Router – dann playit.gg nutzen "
+                        "und dessen Adresse eintragen.")
+                # Something answered but it is not a lobby: probably the game already runs there.
                 result["error"] = str(e)
         self.background(work, done=lambda: self._joined(result, addr, name))
 
@@ -707,27 +719,70 @@ class App:
             self.call(messagebox.showinfo, "Port-Test", msg)
         threading.Thread(target=work, daemon=True).start()
 
+    # ----- playit.gg -----
+    @staticmethod
+    def _playit_cli():
+        base = os.environ.get("ProgramFiles", r"C:\Program Files")
+        return Path(base) / "playit_gg" / "bin" / "playit.exe"
+
+    def _playit_status(self) -> dict:
+        try:
+            out = subprocess.run([str(self._playit_cli()), "status"], capture_output=True, text=True, timeout=15,
+                                 creationflags=subprocess.CREATE_NO_WINDOW).stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return {}
+        return {k.strip().lower(): v.strip() for k, _, v in (l.partition(":") for l in out.splitlines()) if v}
+
     def playit(self):
-        exe = self.paths.root / "playit.exe"
-        if not exe.is_file():
-            if not messagebox.askyesno("playit.gg", "playit.gg herunterladen (ca. 10 MB) und starten?\n"
-                                                    "Damit brauchst du keine Portfreigabe im Router."):
+        cli = self._playit_cli()
+        if not cli.is_file():
+            if not messagebox.askyesno("playit.gg", "playit.gg ist noch nicht installiert.\n\n"
+                                                    "Jetzt das offizielle Installationspaket laden (ca. 6 MB) und "
+                                                    "installieren? Windows fragt dabei nach Admin-Rechten."):
                 return
 
             def work():
-                path = self._installer().download(config.PLAYIT_URL, "playit.exe")
-                if path != exe:
-                    import shutil
-                    shutil.copyfile(path, exe)
+                msi = self._installer().download(config.PLAYIT_MSI_URL, "playit-windows-x86_64-signed.msi")
+                self.log_threadsafe("Installiere playit.gg ...")
+                subprocess.run(["msiexec", "/i", str(msi)], check=False)
+                if not cli.is_file():
+                    raise RuntimeError("playit.gg wurde nicht installiert (abgebrochen?).")
             self.background(work, done=self.playit)
             return
-        subprocess.Popen([str(exe)], cwd=exe.parent, creationflags=subprocess.CREATE_NEW_CONSOLE)
-        messagebox.showinfo("playit.gg",
-                            "playit.gg läuft im neuen Fenster.\n\n"
-                            "1. Den angezeigten Link öffnen und kostenlos anmelden.\n"
-                            f"2. Einen Tunnel anlegen: Typ 'TCP', lokaler Port {self.port}.\n"
-                            "3. Die Tunnel-Adresse (z. B. xyz.gl.joinmc.link:12345) an deine Freunde schicken –\n"
-                            "   die tragen sie als Server-Adresse ein.")
+
+        status = self._playit_status()
+        if status.get("phase") != "running":
+            subprocess.run([str(cli), "start"], capture_output=True, timeout=30,
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+            tray = cli.parent / "playitd-tray.exe"
+            if tray.is_file():
+                subprocess.Popen([str(tray)])
+            status = self._playit_status()
+        if status.get("secret configured") != "true":
+            subprocess.Popen([str(cli), "setup"], creationflags=subprocess.CREATE_NEW_CONSOLE)
+            messagebox.showinfo("playit.gg",
+                                "Einmalige Einrichtung: Im neuen Fenster den Link öffnen, kostenlos anmelden und "
+                                "den Agent bestätigen. Danach hier nochmal auf 'playit.gg' klicken.")
+            return
+        webbrowser.open(config.PLAYIT_TUNNELS_URL)
+        current = self.s.get("public_address", "")
+        addr = simpledialog.askstring(
+            "playit.gg – Tunnel",
+            "Auf der geöffneten playit-Seite (einmalig):\n"
+            "  1. 'Add Tunnel' / 'Create Tunnel'\n"
+            "  2. Typ: TCP (kein Spiel auswählen)\n"
+            f"  3. Local Address 127.0.0.1, Local Port {self.port}\n"
+            "  4. Speichern\n\n"
+            "Dann die Tunnel-Adresse (z. B. abc.gl.at.ply.gg:12345) hier einfügen.\n"
+            "Leer lassen = wieder deine eigene IP verwenden.",
+            initialvalue=current, parent=self.root)
+        if addr is None:
+            return
+        self.s["public_address"] = addr.strip()
+        config.save_settings(self.s)
+        if self.mode == "host":
+            self._show_public_address()
+        self._log(f"Adresse für Freunde: {addr.strip()}" if addr.strip() else "Adresse für Freunde: eigene IP")
 
     # ================= teardown =================
     def stop_all(self):

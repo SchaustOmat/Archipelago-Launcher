@@ -145,14 +145,27 @@ def public_ip() -> str | None:
         return None
 
 
+UA = {"User-Agent": "Mozilla/5.0 (APLauncher)"}  # ifconfig.co answers 403 to Python's default agent
+
+
 def port_reachable(port: int) -> bool | None:
-    """Ask ifconfig.co to connect back to us. None if the check itself failed."""
+    """Ask an outside service to connect back to us over IPv4. None if no service answered."""
     import json
 
-    def check():
-        req = urllib.request.Request(f"https://ifconfig.co/port/{port}", headers={"Accept": "application/json"})
-        return json.loads(urllib.request.urlopen(req, timeout=15).read()).get("reachable")
-    try:
-        return _ipv4_only(check)
-    except (OSError, ValueError):
-        return None
+    def ifconfig():
+        req = urllib.request.Request(f"https://ifconfig.co/port/{port}", headers={"Accept": "application/json", **UA})
+        return json.loads(urllib.request.urlopen(req, timeout=15).read())["reachable"]
+
+    def portchecker():
+        ip = public_ip()
+        body = json.dumps({"host": ip, "ports": [port]}).encode()
+        req = urllib.request.Request("https://portchecker.io/api/v1/query", data=body,
+                                     headers={"Content-Type": "application/json", **UA})
+        return json.loads(urllib.request.urlopen(req, timeout=20).read())["check"][0]["status"]
+
+    for check in (ifconfig, portchecker):
+        try:
+            return bool(_ipv4_only(check))
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            continue
+    return None

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Archipelago Launcher"
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
@@ -33,7 +33,9 @@ SM64_BRANCH = "archipelago"
 # Patches shipped in the sm64ex repo; 60 FPS renders interpolated frames (logic stays at 30).
 SM64_PATCHES = ["enhancements/60fps_ex.patch"]
 
-PLAYIT_URL = "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe"
+# playit 1.x ships as an MSI (service + tray + CLI); the bare exe is only the headless daemon.
+PLAYIT_MSI_URL = "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.msi"
+PLAYIT_TUNNELS_URL = "https://playit.gg/account/tunnels"
 
 # Games a player can pick. "ap_game" is the name Archipelago uses in YAMLs.
 GAMES = {

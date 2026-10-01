@@ -52,14 +52,27 @@ Hosten
 ------
 1. "Server hosten" klicken. Die Adresse für Freunde steht grün im Fenster –
    anklicken kopiert sie.
-2. "Port testen". Wenn nicht erreichbar: im Router Port 38281 (TCP) auf deinen PC
-   weiterleiten ODER "playit.gg" benutzen (dann die playit-Adresse verschicken).
+2. "Port testen". Ist der Port erreichbar, können Freunde direkt mit deiner Adresse beitreten.
    Fragt die Windows-Firewall nach: "Zulassen".
+   Ist er NICHT erreichbar, gibt es zwei Wege:
+   a) Portfreigabe im Router, z. B. FRITZ!Box: http://fritz.box -> Internet -> Freigaben ->
+      Portfreigaben -> Gerät (deinen PC) hinzufügen -> Neue Freigabe -> Portfreigabe,
+      TCP, Port 38281 bis 38281, extern 38281.
+   b) playit.gg (ohne Router): Knopf "playit.gg" im Launcher.
+      - Beim ersten Mal wird playit installiert (Windows fragt nach Admin-Rechten) und
+        einmalig mit einem kostenlosen playit-Konto verbunden (Link im Fenster öffnen).
+      - Dann öffnet sich die Tunnel-Seite: "Add Tunnel", Typ TCP (KEIN Spiel auswählen),
+        Local Address 127.0.0.1, Local Port 38281, speichern.
+      - Die Tunnel-Adresse (z. B. abc.gl.at.ply.gg:12345) im Launcher-Fenster einfügen.
+        Ab dann steht sie als "Adresse für Freunde" im Launcher (anklicken = kopieren).
+      - playit läuft im Hintergrund (Symbol unten rechts in der Taskleiste).
 3. Wenn alle in der Liste sind: "Multiworld generieren & starten".
 4. Weiterspielen an einem anderen Tag: "Spielstand fortsetzen ...".
 
 Probleme
 --------
+- "Der Host ist ... nicht erreichbar": Adresse prüfen, Host muss "Server hosten" geklickt
+  haben, sonst fehlt beim Host die Portfreigabe -> playit.gg nutzen.
 - "... ist in der laufenden Multiworld nicht dabei": Der Host muss "Beenden / Verlassen"
   und dann "Server hosten" klicken, danach erneut "Beitreten".
 - OoT trennt sofort ("incorrect slot"): neuen Archipelago-Spielstand anlegen.

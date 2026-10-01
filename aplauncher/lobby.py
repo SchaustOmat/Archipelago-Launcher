@@ -151,7 +151,9 @@ class Lobby:
 
 # ----- client side -----
 class LobbyError(Exception):
-    pass
+    def __init__(self, message, unreachable=False):
+        super().__init__(message)
+        self.unreachable = unreachable  # no TCP answer at all, as opposed to "something else answered"
 
 
 def _url(address: str, path: str) -> str:
@@ -177,8 +179,10 @@ def _request(address, path, payload=None, timeout=5):
         except ValueError:
             obj = {}
         raise LobbyError(obj.get("error") or f"HTTP {e.code}")
-    except (urllib.error.URLError, OSError, ValueError) as e:
-        raise LobbyError(f"Host nicht erreichbar ({getattr(e, 'reason', e)})")
+    except (urllib.error.URLError, OSError) as e:
+        raise LobbyError(f"Host nicht erreichbar ({getattr(e, 'reason', e)})", unreachable=True)
+    except ValueError:
+        raise LobbyError("Unter dieser Adresse läuft keine Launcher-Lobby.")
     if obj.get("app") != "aplauncher" and "ok" not in obj:
         raise LobbyError("Unter dieser Adresse läuft keine Launcher-Lobby.")
     return obj
