@@ -16,10 +16,10 @@ Starten
    "Weitere Informationen" -> "Trotzdem ausführen".
    (Das Programm ist nur nicht digital signiert.)
 
-Einrichten (einmalig)
----------------------
+Einrichten (einmalig, Tab "⚙ Einrichtung")
+------------------------------------------
 1. Spielername eintragen (max. 16 Zeichen, jeder einen anderen Namen).
-2. Spiel auswählen und mit "Durchsuchen ..." deine ROM wählen.
+2. Dein Spiel anklicken (Karte) und mit "Durchsuchen ..." deine ROM wählen.
    Ein grüner Haken zeigt, dass die ROM passt.
 3. "Installieren / Prüfen" klicken und warten:
     * Ocarina of Time: ca. 5 Minuten
@@ -27,14 +27,15 @@ Einrichten (einmalig)
    Alles landet in C:\APLauncher.
    Fragt Windows "Möchten Sie zulassen, dass diese App Änderungen vornimmt?"
    (beim Installieren von Archipelago): "Ja".
-4. Optional: "Optionen bearbeiten (YAML)" für Spieleinstellungen.
+4. Optional: "YAML bearbeiten" bzw. "Options Creator" für Spieleinstellungen.
+   Mario 64: Häkchen "Kamera links/rechts tauschen", OoT: "SoH Mods / Texturen".
 
-Mitspielen
-----------
+Mitspielen (Tab "🎮 Spielen")
+-----------------------------
 1. Die Adresse vom Host bei "Server-Adresse" eintragen (z. B. 84.123.45.67:38281)
    und ggf. das Passwort.
 2. "Beitreten" klicken. Du siehst dich in der Spielerliste.
-3. Wenn der Host startet, wird "▶ Spiel starten" klickbar.
+3. Wenn der Host startet, wird "▶ Spielen" klickbar.
     * Mario 64 verbindet sich automatisch.
     * Ocarina of Time: auf dem Titelbildschirm einen NEUEN Spielstand anlegen und
       dabei "Archipelago" wählen. Jede neue Multiworld braucht einen neuen Spielstand.
@@ -50,9 +51,11 @@ Es aktualisiert sich bei jedem Fund von selbst.
 
 Hosten
 ------
-1. "Server hosten" klicken. Die Adresse für Freunde steht grün im Fenster –
-   anklicken kopiert sie.
-2. "Port testen". Ist der Port erreichbar, können Freunde direkt mit deiner Adresse beitreten.
+1. Tab "🎮 Spielen": "Server hosten" klicken. Die Adresse für Freunde steht grün im
+   Fenster – anklicken kopiert sie.
+   Nutzt ihr Radmin VPN/Hamachi: im Tab "🌐 Netzwerk" einmal auf den erkannten
+   "Radmin: 26.x.x.x"-Knopf klicken, dann wird diese Adresse angezeigt.
+2. Tab "🌐 Netzwerk": "Port testen". Ist der Port erreichbar, können Freunde direkt mit deiner Adresse beitreten.
    Fragt die Windows-Firewall nach: "Zulassen".
    Ist er NICHT erreichbar, gibt es zwei Wege:
    a) Portfreigabe im Router, z. B. FRITZ!Box: http://fritz.box -> Internet -> Freigaben ->
@@ -66,14 +69,14 @@ Hosten
       - Die Tunnel-Adresse (z. B. abc.gl.at.ply.gg:12345) im Launcher-Fenster einfügen.
         Ab dann steht sie als "Adresse für Freunde" im Launcher (anklicken = kopieren).
       - playit läuft im Hintergrund (Symbol unten rechts in der Taskleiste).
-3. Wenn alle in der Liste sind: "Multiworld generieren & starten".
+3. Wenn alle in der Liste sind: "Multiworld starten".
 4. Weiterspielen an einem anderen Tag: "Spielstand fortsetzen ...".
 
 Probleme
 --------
 - "Der Host ist ... nicht erreichbar": Adresse prüfen, Host muss "Server hosten" geklickt
   haben, sonst fehlt beim Host die Portfreigabe -> playit.gg nutzen.
-- "... ist in der laufenden Multiworld nicht dabei": Der Host muss "Beenden / Verlassen"
+- "... ist in der laufenden Multiworld nicht dabei": Der Host muss "Beenden"
   und dann "Server hosten" klicken, danach erneut "Beitreten".
 - OoT trennt sofort ("incorrect slot"): neuen Archipelago-Spielstand anlegen.
 - Fehler mit "VCRUNTIME140.dll": "Microsoft Visual C++ Redistributable x64" von

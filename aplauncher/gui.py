@@ -1,6 +1,7 @@
 """Tkinter window tying install, lobby, server and games together."""
 import os
 import queue
+import re
 import subprocess
 import threading
 import tkinter as tk
@@ -9,7 +10,7 @@ import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import apclient, config, games, host, lobby, overlay, roms, theme
+from . import apclient, config, games, host, lobby, overlay, roms, theme, widgets
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
 
@@ -31,8 +32,8 @@ class App:
 
         self.root = tk.Tk()
         self.root.title(f"{config.APP_NAME} {config.APP_VERSION}")
-        self.root.geometry("980x760")
-        self.root.minsize(820, 620)
+        self.root.geometry("1040x760")
+        self.root.minsize(900, 660)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         theme.apply(self.root)
         theme.dark_titlebar(self.root)
@@ -42,120 +43,207 @@ class App:
         self.session_zip = None
         self._build()
         self._load_fields()
+        widgets.fade_in(self.root)
         self.root.after(POLL_MS, self._drain)
 
     # ================= layout =================
-    def _build(self):
-        pad = {"padx": 6, "pady": 3}
-        top = ttk.Frame(self.root, padding=8)
-        top.pack(fill="both", expand=True)
+    def _card(self, parent, title=None, **pack):
+        outer = tk.Frame(parent, bg=theme.PANEL, highlightthickness=1, highlightbackground=theme.BORDER)
+        outer.pack(fill=pack.pop("fill", "x"), expand=pack.pop("expand", False), pady=pack.pop("pady", (0, 10)),
+                   **pack)
+        inner = ttk.Frame(outer, style="Card.TFrame", padding=(14, 10, 14, 12))
+        inner.pack(fill="both", expand=True)
+        if title:
+            tk.Label(inner, text=title, bg=theme.PANEL, fg=theme.ACCENT_HI,
+                     font=("Segoe UI Semibold", 11)).pack(anchor="w", pady=(0, 8))
+        return inner
 
-        me = ttk.LabelFrame(top, text="1. Mein Spiel", padding=8)
-        me.pack(fill="x")
-        ttk.Label(me, text="Spielername:").grid(row=0, column=0, sticky="w", **pad)
+    def _field(self, parent, label, var, width=28, show=None):
+        box = ttk.Frame(parent, style="Card.TFrame")
+        ttk.Label(box, text=label, style="CardMuted.TLabel").pack(anchor="w")
+        e = ttk.Entry(box, textvariable=var, width=width, show=show)
+        e.pack(fill="x", pady=(2, 0))
+        return box, e
+
+    def _build(self):
+        self.toast = widgets.Toast(self.root)
+
+        head = ttk.Frame(self.root, padding=(18, 14, 18, 0))
+        head.pack(fill="x")
+        titles = ttk.Frame(head)
+        titles.pack(side="left")
+        tk.Label(titles, text="◆ Archipelago Launcher", bg=theme.BG, fg=theme.FG,
+                 font=("Segoe UI Semibold", 18)).pack(anchor="w")
+        tk.Label(titles, text=f"Super Mario 64 · Ocarina of Time   ·   Version {config.APP_VERSION}",
+                 bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9)).pack(anchor="w")
+        self.pill = widgets.StatusPill(head)
+        self.pill.pack(side="right", pady=6)
+
+        self.tabs = widgets.TabBar(self.root, [("play", "🎮  Spielen"), ("setup", "⚙  Einrichtung"),
+                                              ("net", "🌐  Netzwerk"), ("log", "📜  Log")], self._show_tab)
+        self.tabs.pack(fill="x", padx=14, pady=(8, 0))
+
+        body = ttk.Frame(self.root, padding=(18, 12, 18, 6))
+        body.pack(fill="both", expand=True)
+        self.pages = {k: ttk.Frame(body) for k in ("play", "setup", "net", "log")}
+        for page in self.pages.values():
+            page.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self._build_play(self.pages["play"])
+        self._build_setup(self.pages["setup"])
+        self._build_net(self.pages["net"])
+        self._build_log(self.pages["log"])
+
+        # Progress bar only appears while something runs.
+        self.foot = ttk.Frame(self.root, padding=(18, 0, 18, 10))
+        self.pb = ttk.Progressbar(self.foot, mode="determinate", maximum=1.0, style="Thin.Horizontal.TProgressbar")
+        self.pb.pack(side="left", fill="x", expand=True)
+        self.l_prog = tk.Label(self.foot, text="", bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9),
+                               width=46, anchor="e")
+        self.l_prog.pack(side="left", padx=(10, 0))
+
+    def _show_tab(self, key):
+        self.pages[key].tkraise()
+
+    def _build_play(self, page):
+        conn = self._card(page, "Verbindung")
+        row = ttk.Frame(conn, style="Card.TFrame")
+        row.pack(fill="x")
+        self.v_addr, self.v_pw = tk.StringVar(), tk.StringVar()
+        box, _ = self._field(row, "Server-Adresse (vom Host)", self.v_addr, width=34)
+        box.pack(side="left", padx=(0, 12))
+        box, _ = self._field(row, "Passwort (optional)", self.v_pw, width=16, show="•")
+        box.pack(side="left")
+
+        self.actions = ttk.Frame(conn, style="Card.TFrame")
+        self.actions.pack(fill="x", pady=(12, 0))
+        mk = lambda text, cmd, kind="secondary": widgets.RoundButton(self.actions, text, cmd, kind)
+        self.b_host = mk("🖥  Server hosten", self.host_start, "primary")
+        self.b_join = mk("🔗  Beitreten", self.client_join, "primary")
+        self.b_resume = mk("💾  Spielstand fortsetzen", self.host_resume)
+        self.b_gen = mk("🚀  Multiworld starten", self.host_generate, "primary")
+        self.b_play = widgets.RoundButton(self.actions, "▶  Spielen", self.play, "primary", height=40, size=11)
+        self.b_overlay = mk("🗺  Overlay", self.toggle_overlay)
+        self.b_stop = mk("Beenden", self.stop_all, "danger")
+
+        info = ttk.Frame(conn, style="Card.TFrame")
+        info.pack(fill="x", pady=(10, 0))
+        self.l_state = ttk.Label(info, text="Nicht verbunden.", style="Card.TLabel")
+        self.l_state.pack(side="left")
+        self.l_addr = tk.Label(info, text="", bg=theme.PANEL, fg=theme.OK, cursor="hand2",
+                               font=("Segoe UI Semibold", 10))
+        self.l_addr.pack(side="right")
+        self.l_addr.bind("<Button-1>", lambda e: self.copy_address())
+
+        pc = self._card(page, "Spieler", fill="both", expand=True)
+        cols = ("name", "game", "status", "progress")
+        self.tree = ttk.Treeview(pc, columns=cols, show="headings", height=5)
+        for c, t, w in zip(cols, ("Name", "Spiel", "Status", "Fortschritt"), (170, 260, 150, 140)):
+            self.tree.heading(c, text=t, anchor="w")
+            self.tree.column(c, width=w, anchor="w")
+        self.tree.tag_configure("me", font=("Segoe UI Semibold", 10), foreground=theme.ACCENT_HI)
+        self.tree.pack(fill="both", expand=True)
+
+        feed = self._card(page, "Live", pady=(0, 0))
+        self.feed = tk.Text(feed, height=5, wrap="word", state="disabled", font=("Segoe UI", 9), padx=8, pady=4)
+        theme.style_text(self.feed)
+        self.feed.pack(fill="x")
+
+    def _build_setup(self, page):
+        top = ttk.Frame(page)
+        top.pack(fill="x")
+        who = self._card(top, "Du", side="left", fill="y", pady=(0, 10), padx=(0, 10))
         self.v_name = tk.StringVar()
-        ttk.Entry(me, textvariable=self.v_name, width=20).grid(row=0, column=1, sticky="w", **pad)
-        ttk.Label(me, text="Spiel:").grid(row=0, column=2, sticky="e", **pad)
+        box, _ = self._field(who, "Spielername (max. 16 Zeichen)", self.v_name, width=22)
+        box.pack(anchor="w")
+
+        gc = self._card(top, "Spiel", side="left", fill="x", expand=True)
+        cards = ttk.Frame(gc, style="Card.TFrame")
+        cards.pack(fill="x")
         self.game_labels = {**{k: g["label"] for k, g in GAMES.items()}, NO_GAME: "Kein Spiel (nur hosten)"}
         self.v_game = tk.StringVar()
-        cb = ttk.Combobox(me, textvariable=self.v_game, values=list(self.game_labels.values()),
-                          state="readonly", width=36)
-        cb.grid(row=0, column=3, columnspan=2, sticky="w", **pad)
-        cb.bind("<<ComboboxSelected>>", lambda e: self._game_changed())
+        self.game_cards = {}
+        for key, icon, title, sub in (("sm64", "⭐", "Super Mario 64", "sm64ex · 60 FPS"),
+                                      ("soh", "🗡", "Ocarina of Time", "Ship of Harkinian"),
+                                      (NO_GAME, "🖥", "Nur hosten", "kein eigenes Spiel")):
+            card = widgets.GameCard(cards, icon, title, sub, lambda k=key: self._select_game(k))
+            card.pack(side="left", padx=(0, 10), fill="x", expand=True)
+            self.game_cards[key] = card
 
-        ttk.Label(me, text="ROM:").grid(row=1, column=0, sticky="w", **pad)
+        rc = self._card(page, "ROM")
+        row = ttk.Frame(rc, style="Card.TFrame")
+        row.pack(fill="x")
         self.v_rom = tk.StringVar()
-        self.e_rom = ttk.Entry(me, textvariable=self.v_rom, width=70)
-        self.e_rom.grid(row=1, column=1, columnspan=3, sticky="we", **pad)
-        self.b_rom = ttk.Button(me, text="Durchsuchen ...", command=self.pick_rom)
-        self.b_rom.grid(row=1, column=4, sticky="w", **pad)
-        self.l_rom = ttk.Label(me, text="", style="Muted.TLabel")
-        self.l_rom.grid(row=2, column=1, columnspan=4, sticky="w", padx=6)
+        self.e_rom = ttk.Entry(row, textvariable=self.v_rom)
+        self.e_rom.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.b_rom = widgets.RoundButton(row, "Durchsuchen …", self.pick_rom, height=32)
+        self.b_rom.pack(side="left")
+        self.l_rom = tk.Label(rc, text="", bg=theme.PANEL, fg=theme.MUTED, font=("Segoe UI", 9))
+        self.l_rom.pack(anchor="w", pady=(6, 0))
 
-        ttk.Label(me, text="Installationsordner:").grid(row=3, column=0, sticky="w", **pad)
+        ic = self._card(page, "Installation")
+        row = ttk.Frame(ic, style="Card.TFrame")
+        row.pack(fill="x")
+        self.b_install = widgets.RoundButton(row, "⬇  Installieren / Prüfen", self.install, "primary")
+        self.b_install.pack(side="left")
+        self.l_inst = tk.Label(row, text="", bg=theme.PANEL, font=("Segoe UI Semibold", 10))
+        self.l_inst.pack(side="left", padx=14)
         self.v_root = tk.StringVar()
-        ttk.Entry(me, textvariable=self.v_root, width=40).grid(row=3, column=1, columnspan=2, sticky="we", **pad)
-        ttk.Button(me, text="Ändern ...", command=self.pick_root).grid(row=3, column=3, sticky="w", **pad)
+        widgets.RoundButton(row, "Ändern …", self.pick_root, "ghost", height=32).pack(side="right")
+        ttk.Entry(row, textvariable=self.v_root, width=24).pack(side="right", padx=8)
+        ttk.Label(row, text="Ordner:", style="CardMuted.TLabel").pack(side="right")
 
-        row = ttk.Frame(me)
-        row.grid(row=4, column=0, columnspan=5, sticky="we", pady=(6, 0))
-        self.b_install = ttk.Button(row, text="Installieren / Prüfen", command=self.install)
-        self.b_install.pack(side="left", padx=6)
-        ttk.Button(row, text="Optionen bearbeiten (YAML)", command=self.edit_yaml).pack(side="left", padx=6)
-        ttk.Button(row, text="Options Creator", command=self.options_creator).pack(side="left", padx=6)
-        ttk.Button(row, text="Ordner öffnen", command=lambda: self._open(self.paths.root)).pack(side="left", padx=6)
-        self.b_mods = ttk.Button(row, text="SoH Mods/Texturen", command=self.open_soh_mods)
-        self.b_mods.pack(side="left", padx=6)
+        oc = self._card(page, "Optionen")
+        row = ttk.Frame(oc, style="Card.TFrame")
+        row.pack(fill="x")
+        widgets.RoundButton(row, "📝  YAML bearbeiten", self.edit_yaml, height=32).pack(side="left", padx=(0, 8))
+        widgets.RoundButton(row, "🧩  Options Creator", self.options_creator, height=32).pack(side="left", padx=(0, 8))
+        widgets.RoundButton(row, "📂  Ordner öffnen", lambda: self._open(self.paths.root), "ghost",
+                            height=32).pack(side="left")
+        self.game_opts = ttk.Frame(oc, style="Card.TFrame")
+        self.game_opts.pack(fill="x", pady=(10, 0))
         self.v_invert = tk.BooleanVar()
-        self.c_invert = ttk.Checkbutton(me, text="Mario: Kamera links/rechts tauschen", variable=self.v_invert,
-                                        command=self._save_fields)
-        self.c_invert.grid(row=5, column=0, columnspan=3, sticky="w", padx=6, pady=(6, 0))
-        self.l_inst = ttk.Label(row, text="")
-        self.l_inst.pack(side="left", padx=12)
-        me.columnconfigure(3, weight=1)
+        self.c_invert = ttk.Checkbutton(self.game_opts, text="Kamera links/rechts tauschen (Mario 64)",
+                                        variable=self.v_invert, command=self._save_fields, style="Card.TCheckbutton")
+        self.b_mods = widgets.RoundButton(self.game_opts, "🎨  SoH Mods / Texturen", self.open_soh_mods, height=32)
 
-        mw = ttk.LabelFrame(top, text="2. Multiworld", padding=8)
-        mw.pack(fill="x", pady=(8, 0))
-        ttk.Label(mw, text="Server-Adresse:").grid(row=0, column=0, sticky="w", **pad)
-        self.v_addr = tk.StringVar()
-        ttk.Entry(mw, textvariable=self.v_addr, width=30).grid(row=0, column=1, sticky="w", **pad)
-        ttk.Label(mw, text="Passwort (optional):").grid(row=0, column=2, sticky="e", **pad)
-        self.v_pw = tk.StringVar()
-        ttk.Entry(mw, textvariable=self.v_pw, width=16, show="*").grid(row=0, column=3, sticky="w", **pad)
-        ttk.Label(mw, text="Port:").grid(row=0, column=4, sticky="e", **pad)
+    def _build_net(self, page):
+        ac = self._card(page, "Adresse für Freunde")
+        self.l_addr_net = tk.Label(ac, text="", bg=theme.PANEL, fg=theme.OK, font=("Segoe UI Semibold", 12),
+                                   cursor="hand2")
+        self.l_addr_net.pack(anchor="w")
+        self.l_addr_net.bind("<Button-1>", lambda e: self.copy_address())
+        ttk.Label(ac, text="Wird beim Hosten angezeigt. Anklicken kopiert sie. Eigene Adresse (z. B. Radmin-, "
+                           "Hamachi- oder playit-Adresse) hier festlegen, leer = Internet-IP:",
+                  style="CardMuted.TLabel", wraplength=860).pack(anchor="w", pady=(6, 4))
+        row = ttk.Frame(ac, style="Card.TFrame")
+        row.pack(fill="x")
+        self.v_public = tk.StringVar()
+        ttk.Entry(row, textvariable=self.v_public, width=34).pack(side="left")
+        widgets.RoundButton(row, "Speichern", self.save_public_address, height=32).pack(side="left", padx=8)
+        self.vpn_box = ttk.Frame(row, style="Card.TFrame")
+        self.vpn_box.pack(side="left")
+
+        pc = self._card(page, "Erreichbarkeit")
+        row = ttk.Frame(pc, style="Card.TFrame")
+        row.pack(fill="x")
         self.v_port = tk.StringVar()
-        ttk.Entry(mw, textvariable=self.v_port, width=7).grid(row=0, column=5, sticky="w", **pad)
+        box, _ = self._field(row, "Port", self.v_port, width=8)
+        box.pack(side="left", padx=(0, 12))
+        widgets.RoundButton(row, "📡  Port testen", self.port_test, height=32).pack(side="left", anchor="s")
+        widgets.RoundButton(row, "🌍  playit.gg einrichten", self.playit, height=32).pack(side="left", padx=8,
+                                                                                       anchor="s")
+        ttk.Label(pc, text="Ohne Portfreigabe im Router: alle nutzen Radmin VPN / Hamachi (Host-Adresse aus dem "
+                           "VPN-Programm) oder der Host richtet playit.gg ein.",
+                  style="CardMuted.TLabel", wraplength=860).pack(anchor="w", pady=(10, 0))
 
-        btns = ttk.Frame(mw)
-        btns.grid(row=1, column=0, columnspan=6, sticky="we", pady=(6, 0))
-        self.b_host = ttk.Button(btns, text="Server hosten", command=self.host_start)
-        self.b_join = ttk.Button(btns, text="Beitreten", command=self.client_join)
-        self.b_gen = ttk.Button(btns, text="Multiworld generieren & starten", command=self.host_generate, style="Accent.TButton")
-        self.b_resume = ttk.Button(btns, text="Spielstand fortsetzen ...", command=self.host_resume)
-        self.b_play = ttk.Button(btns, text="▶ Spiel starten", command=self.play, style="Accent.TButton")
-        self.b_overlay = ttk.Button(btns, text="🗺 Overlay", command=self.toggle_overlay)
-        self.b_stop = ttk.Button(btns, text="Beenden / Verlassen", command=self.stop_all)
-        for b in (self.b_host, self.b_join, self.b_gen, self.b_resume, self.b_play, self.b_overlay, self.b_stop):
-            b.pack(side="left", padx=4)
-        net = ttk.Frame(mw)
-        net.grid(row=2, column=0, columnspan=6, sticky="we", pady=(4, 0))
-        ttk.Button(net, text="Port testen", command=self.port_test).pack(side="left", padx=4)
-        ttk.Button(net, text="playit.gg (ohne Portfreigabe)", command=self.playit).pack(side="left", padx=4)
-        self.l_addr = tk.Label(net, text="", bg=theme.BG, fg=theme.OK, cursor="hand2",
-                               font=("Segoe UI", 10, "bold"))
-        self.l_addr.pack(side="left", padx=10)
-        self.l_addr.bind("<Button-1>", lambda e: self.copy_address())
-        self.l_state = ttk.Label(mw, text="Nicht verbunden.", style="State.TLabel")
-        self.l_state.grid(row=3, column=0, columnspan=6, sticky="w", padx=6, pady=(6, 0))
-
-        pane = ttk.PanedWindow(top, orient="vertical")
-        pane.pack(fill="both", expand=True, pady=(8, 0))
-        pf = ttk.LabelFrame(pane, text="Spieler", padding=4)
-        cols = ("name", "game", "status", "progress")
-        self.tree = ttk.Treeview(pf, columns=cols, show="headings", height=6)
-        for c, t, w in zip(cols, ("Name", "Spiel", "Status", "Fortschritt"), (160, 260, 160, 140)):
-            self.tree.heading(c, text=t)
-            self.tree.column(c, width=w, anchor="w")
-        self.tree.tag_configure("me", font=("Segoe UI", 10, "bold"), foreground=theme.ACCENT_HI)
-        self.tree.pack(fill="both", expand=True)
-        pane.add(pf, weight=1)
-
-        lf = ttk.LabelFrame(pane, text="Log", padding=4)
-        self.log_box = tk.Text(lf, height=12, wrap="word", state="disabled", font=("Consolas", 10),
-                               padx=6, pady=4)
+    def _build_log(self, page):
+        lc = self._card(page, None, fill="both", expand=True, pady=(0, 0))
+        self.log_box = tk.Text(lc, wrap="word", state="disabled", font=("Consolas", 10), padx=8, pady=6)
         theme.style_text(self.log_box)
-        sb = ttk.Scrollbar(lf, command=self.log_box.yview)
+        sb = ttk.Scrollbar(lc, command=self.log_box.yview)
         self.log_box.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.log_box.pack(fill="both", expand=True)
-        pane.add(lf, weight=2)
-
-        bottom = ttk.Frame(top)
-        bottom.pack(fill="x", pady=(6, 0))
-        self.pb = ttk.Progressbar(bottom, mode="determinate", maximum=1.0)
-        self.pb.pack(side="left", fill="x", expand=True)
-        self.l_prog = ttk.Label(bottom, text="", width=45)
-        self.l_prog.pack(side="left", padx=6)
 
     # ================= settings / fields =================
     @property
@@ -164,8 +252,7 @@ class App:
 
     @property
     def game(self) -> str:
-        label = self.v_game.get()
-        return next((k for k, v in self.game_labels.items() if v == label), NO_GAME)
+        return self.v_game.get() or NO_GAME
 
     @property
     def port(self) -> int:
@@ -176,14 +263,19 @@ class App:
 
     def _load_fields(self):
         self.v_name.set(self.s["name"])
-        self.v_game.set(self.game_labels.get(self.s["game"], self.game_labels["sm64"]))
+        self.v_game.set(self.s["game"] if self.s["game"] in self.game_labels else "sm64")
         self.v_root.set(self.s["root"])
         self.v_addr.set(self.s["address"])
         self.v_pw.set(self.s["password"])
         self.v_port.set(str(self.s.get("port", config.DEFAULT_PORT)))
         self.v_invert.set(bool(self.s.get("sm64_invert_camera_x")))
+        self.v_public.set(self.s.get("public_address", ""))
+        self._set_friend_address("")
         self._game_changed()
         self._refresh_buttons()
+        self._detect_vpn()
+        # First start or missing install: open the setup tab, otherwise go straight to playing.
+        self.tabs.select("play" if self.v_name.get() and self._installed() else "setup", animate=False)
 
     def _save_fields(self):
         if self.game in GAMES:
@@ -193,14 +285,30 @@ class App:
                       sm64_invert_camera_x=self.v_invert.get())
         config.save_settings(self.s)
 
+    def _select_game(self, key):
+        if self.game in GAMES:
+            self.s["roms"][self.game] = self.v_rom.get().strip()
+        self.v_game.set(key)
+        self._game_changed()
+        self._save_fields()
+
     def _game_changed(self):
         g = self.game
+        for key, card in self.game_cards.items():
+            card.set_selected(key == g)
         state = "normal" if g in GAMES else "disabled"
         self.e_rom.configure(state=state)
         self.b_rom.configure(state=state)
         self.v_rom.set(self.s["roms"].get(g, "") if g in GAMES else "")
+        self.c_invert.pack_forget()
+        self.b_mods.pack_forget()
+        if g == "sm64":
+            self.c_invert.pack(anchor="w")
+        elif g == "soh":
+            self.b_mods.pack(anchor="w")
         self._check_rom()
         self._update_install_label()
+        self._refresh_buttons()
 
     def _check_rom(self):
         g = self.game
@@ -229,21 +337,34 @@ class App:
 
     def _update_install_label(self):
         ok = self._installed()
-        self.l_inst.configure(text="✓ installiert" if ok else "noch nicht installiert",
+        self.l_inst.configure(text="✓ installiert" if ok else "● noch nicht installiert",
                               foreground=theme.OK if ok else theme.WARN)
 
     def _refresh_buttons(self):
-        idle = self.mode is None
-        self.b_host.configure(state="normal" if idle and not self.busy else "disabled")
-        self.b_join.configure(state="normal" if idle and not self.busy else "disabled")
-        self.b_resume.configure(state="normal" if idle and not self.busy else "disabled")
+        """Only the buttons that make sense right now are shown."""
+        connected = self.ap_connected
         lobby_open = self.mode == "host" and self.lobby is not None and self.lobby.state == "lobby"
-        self.b_gen.configure(state="normal" if lobby_open and not self.busy else "disabled")
-        self.b_stop.configure(state="disabled" if idle else "normal")
-        # Only once the real Archipelago server answers; before that the port belongs to the lobby.
-        self.b_play.configure(state="normal" if self.game in GAMES and self.ap_connected else "disabled")
-        self.b_overlay.configure(state="normal" if self.game in GAMES and self.ap_connected else "disabled")
+        if self.mode is None:
+            visible = [self.b_host, self.b_join, self.b_resume]
+            pill = ("busy", "Arbeitet …") if self.busy else ("offline", "Offline")
+        elif lobby_open:
+            visible = [self.b_gen, self.b_stop]
+            pill = ("lobby", f"Lobby · {len(self.lobby.players)} Spieler")
+        elif connected:
+            visible = ([self.b_play, self.b_overlay] if self.game in GAMES else []) + [self.b_stop]
+            pill = ("connected", "Verbunden")
+        else:
+            visible = [self.b_stop]
+            pill = ("busy", "Lobby" if self.mode == "client" else "Startet …")
+        if [w for w in self.actions.pack_slaves()] != visible:
+            for w in self.actions.pack_slaves():
+                w.pack_forget()
+            for w in visible:
+                w.pack(side="right" if w is self.b_stop else "left", padx=(0, 8))
+        for b in (self.b_host, self.b_join, self.b_resume, self.b_gen):
+            b.configure(state="disabled" if self.busy else "normal")
         self.b_install.configure(state="disabled" if self.busy else "normal")
+        self.pill.set(*pill)
 
     # ================= thread-safe plumbing =================
     def log_threadsafe(self, text):
@@ -263,6 +384,10 @@ class App:
                     self._log(data)
                 elif kind == "progress":
                     frac, text = data
+                    if (frac is not None or text) and not self.foot.winfo_ismapped():
+                        self.foot.pack(fill="x", side="bottom")
+                    elif frac is None and not text:
+                        self.foot.pack_forget()
                     if frac is None:
                         self.pb.configure(mode="indeterminate")
                         self.pb.start(15) if text else self.pb.stop()
@@ -314,6 +439,14 @@ class App:
 
     def set_state(self, text):
         self.l_state.configure(text=text)
+
+    def _feed(self, text):
+        self.feed.configure(state="normal")
+        self.feed.insert("end", text + "\n")
+        if int(self.feed.index("end-1c").split(".")[0]) > 300:
+            self.feed.delete("1.0", "100.0")
+        self.feed.see("end")
+        self.feed.configure(state="disabled")
 
     # ================= setup =================
     def pick_rom(self):
@@ -432,7 +565,7 @@ class App:
         self.mode = "host"
         self.v_addr.set(f"localhost:{self.port}")
         self._log(f"Lobby offen auf Port {self.port}. Freunde tragen deine Adresse ein und klicken 'Beitreten'.")
-        self.set_state("Lobby offen – warte auf Spieler. Dann 'Multiworld generieren & starten'.")
+        self.set_state("Lobby offen – warte auf Spieler. Dann 'Multiworld starten'.")
         self._show_public_address()
         self._host_lobby_changed()
         self._host_lobby_tick()
@@ -449,18 +582,49 @@ class App:
 
     def _set_friend_address(self, address):
         self.friend_address = address
-        if address:
-            self.l_addr.configure(text=f"Adresse für Freunde: {address}   (Klicken zum Kopieren)", fg=theme.OK)
-        else:
-            self.l_addr.configure(text="")
+        self.l_addr.configure(text=f"📋  Für Freunde: {address}" if address else "")
+        self.l_addr_net.configure(text=f"📋  {address}" if address else "– erst beim Hosten –",
+                                  fg=theme.OK if address else theme.MUTED)
 
     def copy_address(self):
         if not self.friend_address:
             return
         self.root.clipboard_clear()
         self.root.clipboard_append(self.friend_address)
-        self.l_addr.configure(text=f"✓ Kopiert: {self.friend_address}", fg=theme.ACCENT_HI)
-        self.root.after(1800, lambda: self._set_friend_address(self.friend_address))
+        self.toast.show(f"✓ Adresse kopiert: {self.friend_address}")
+
+    def save_public_address(self):
+        self.s["public_address"] = self.v_public.get().strip()
+        config.save_settings(self.s)
+        if self.mode == "host":
+            self._show_public_address()
+        self.toast.show("✓ Gespeichert" if self.s["public_address"] else "✓ Es wird wieder deine Internet-IP verwendet")
+
+    def _detect_vpn(self):
+        """Offer the IPs of Radmin VPN / Hamachi / Tailscale / ZeroTier adapters as one-click addresses."""
+        def work():
+            try:
+                out = subprocess.run(["ipconfig"], capture_output=True, text=True, encoding="cp850",
+                                     errors="replace", timeout=10, creationflags=subprocess.CREATE_NO_WINDOW).stdout
+            except (OSError, subprocess.TimeoutExpired):
+                return
+            found, adapter = [], ""
+            for line in out.splitlines():
+                if line and not line.startswith(" "):
+                    adapter = line
+                m = re.search(r"IPv4[^:]*:\s*([\d.]+)", line)
+                if m:
+                    for vpn in ("Radmin", "Hamachi", "Tailscale", "ZeroTier"):
+                        if vpn.lower() in adapter.lower():
+                            found.append((vpn, m.group(1)))
+            self.call(self._show_vpn, found)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _show_vpn(self, found):
+        for vpn, ip in found:
+            addr = f"{ip}:{self.port}"
+            widgets.RoundButton(self.vpn_box, f"{vpn}: {ip}", lambda a=addr: (self.v_public.set(a),
+                                self.save_public_address()), "ghost", height=32).pack(side="left", padx=(0, 6))
 
     def _host_lobby_tick(self):
         if self.mode == "host" and self.lobby and self.lobby.state == "lobby":
@@ -519,9 +683,9 @@ class App:
         win.geometry("620x300")
         win.configure(bg=theme.BG)
         theme.dark_titlebar(win)
-        lb = tk.Listbox(win)
+        lb = tk.Listbox(win, font=("Segoe UI", 10), activestyle="none")
         theme.style_text(lb)
-        lb.pack(fill="both", expand=True, padx=8, pady=8)
+        lb.pack(fill="both", expand=True, padx=12, pady=12)
         for z in sessions:
             lb.insert("end", f"{z.parent.name}   –   {', '.join(host.session_players(z))}")
         lb.selection_set(0)
@@ -537,7 +701,8 @@ class App:
             self.v_addr.set(f"localhost:{port}")
             self._show_public_address()
             self.background(lambda: self._start_server(paths, z, port, pw), done=lambda: self._host_running(z))
-        ttk.Button(win, text="Diesen Spielstand starten", command=go).pack(pady=(0, 8))
+        widgets.RoundButton(win, "▶  Diesen Spielstand starten", go, "primary", bg=theme.BG).pack(pady=(0, 12))
+        widgets.fade_in(win, 180)
 
     def _start_server(self, paths, zip_path, port, pw):
         self.server = host.Server(paths, zip_path, port, pw, self.log_threadsafe)
@@ -547,7 +712,7 @@ class App:
     def _host_running(self, zip_path):
         self.lobby = None
         self.session_zip = zip_path
-        self.set_state("Server läuft. Alle können jetzt '▶ Spiel starten' drücken.")
+        self.set_state("Server läuft. Alle können jetzt '▶ Spielen' drücken.")
         names = host.session_players(zip_path)
         me = self.v_name.get().strip()
         slot = me if me in names else (names[0] if names else me)
@@ -631,6 +796,7 @@ class App:
     def _watch_event(self, kind, data):
         if kind == "log":
             self._log(data)
+            self._feed(data)
         elif kind == "players":
             self.tree.delete(*self.tree.get_children())
             for r in data:
@@ -639,7 +805,7 @@ class App:
         elif kind == "state":
             self.ap_connected = data["connected"]
             if data["connected"]:
-                self.set_state("Verbunden. Server läuft – '▶ Spiel starten' drücken.")
+                self.set_state("Verbunden. Server läuft – '▶ Spielen' drücken.")
             else:
                 self.set_state(data["text"])
             self._refresh_buttons()
@@ -722,7 +888,9 @@ class App:
                        f"Lösung: Im Router Port {port} (TCP) auf diesen PC weiterleiten und in der Windows-Firewall "
                        f"erlauben – oder playit.gg benutzen.")
             self.call(self._log, msg)
-            self.call(messagebox.showinfo, "Port-Test", msg)
+            self.call(self.toast.show, msg.splitlines()[0], theme.OK if ok else theme.WARN, 4000)
+            if not ok:
+                self.call(messagebox.showinfo, "Port-Test", msg)
         threading.Thread(target=work, daemon=True).start()
 
     # ----- playit.gg -----
@@ -785,6 +953,7 @@ class App:
         if addr is None:
             return
         self.s["public_address"] = addr.strip()
+        self.v_public.set(addr.strip())
         config.save_settings(self.s)
         if self.mode == "host":
             self._show_public_address()

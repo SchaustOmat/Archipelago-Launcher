@@ -9,7 +9,7 @@ Ein Programm für eine lokale Archipelago-Multiworld mit **Super Mario 64** (sm6
    - Mario 64: ROM USA oder Japan (.z64/.n64/.v64). Das Spiel wird einmalig auf dem PC gebaut (ca. 3–10 Min.).
    - OoT: jede Nicht-Master-Quest-Version. SoH erzeugt daraus einmalig seine Spieldaten.
 3. Optional: **Optionen bearbeiten (YAML)** oder **Options Creator**.
-4. Adresse des Hosts eintragen → **Beitreten**. Wenn der Host startet: **▶ Spiel starten**.
+4. Adresse des Hosts eintragen → **Beitreten**. Wenn der Host startet: **▶ Spielen**.
    - Mario 64 verbindet sich automatisch.
    - SoH: im Dateiauswahl-Menü „Archipelago“ wählen; Server/Name/Passwort sind schon eingetragen.
 
@@ -24,7 +24,7 @@ JSON an den Launcher gibt.
 1. Wie oben installieren (oder Spiel „Kein Spiel (nur hosten)“).
 2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.
 3. **Port testen**. Falls nicht erreichbar: Port 38281 TCP im Router weiterleiten, oder **playit.gg** nutzen.
-4. Wenn alle drin sind: **Multiworld generieren & starten**.
+4. Wenn alle drin sind: **Multiworld starten**.
 5. Später weiterspielen: **Spielstand fortsetzen …**
 
 Alles wird nach `C:\APLauncher` installiert (Pfad ohne Leerzeichen, wegen MSYS2).

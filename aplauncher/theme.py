@@ -76,6 +76,18 @@ def apply(root: tk.Tk):
     s.configure("TCheckbutton", background=BG, foreground=FG, indicatorbackground=FIELD,
                 indicatorforeground=ACCENT_HI, indicatorcolor=FIELD)
     s.map("TCheckbutton", background=[("active", BG)], indicatorcolor=[("selected", ACCENT)])
+    # Cards: panels on the window background
+    s.configure("Card.TFrame", background=PANEL)
+    s.configure("Card.TLabel", background=PANEL, foreground=FG)
+    s.configure("CardMuted.TLabel", background=PANEL, foreground=MUTED, font=("Segoe UI", 9))
+    s.configure("CardTitle.TLabel", background=PANEL, foreground=ACCENT_HI, font=("Segoe UI Semibold", 11))
+    s.configure("Card.TCheckbutton", background=PANEL, foreground=FG, indicatorbackground=FIELD,
+                indicatorforeground=ACCENT_HI, indicatorcolor=FIELD)
+    s.map("Card.TCheckbutton", background=[("active", PANEL)], indicatorcolor=[("selected", ACCENT)])
+    s.configure("Title.TLabel", background=BG, foreground=FG, font=("Segoe UI Semibold", 17))
+    s.configure("Sub.TLabel", background=BG, foreground=MUTED, font=("Segoe UI", 9))
+    s.configure("Thin.Horizontal.TProgressbar", background=ACCENT, troughcolor=PANEL, bordercolor=BG,
+                lightcolor=ACCENT, darkcolor=ACCENT, thickness=6)
     s.configure("TPanedwindow", background=BG)
     s.configure("Sash", sashthickness=6, gripcount=0, background=BG)
 

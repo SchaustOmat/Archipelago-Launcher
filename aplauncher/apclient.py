@@ -113,8 +113,8 @@ class APWatcher:
         elif cmd == "ConnectionRefused":
             errs = msg.get("errors", [])
             text = {"InvalidSlot": f"'{self.slot_name}' ist in der laufenden Multiworld nicht dabei. "
-                                   "Der Host muss 'Beenden / Verlassen' und dann 'Server hosten' klicken; "
-                                   "danach hier 'Beenden / Verlassen' und 'Beitreten'.",
+                                   "Der Host muss 'Beenden' und dann 'Server hosten' klicken; "
+                                   "danach hier 'Beenden' und 'Beitreten'.",
                     "InvalidPassword": "Falsches Server-Passwort."}
             raise FatalError(" ".join(text.get(e, e) for e in errs) or "Verbindung abgelehnt.")
         elif cmd == "Connected":
