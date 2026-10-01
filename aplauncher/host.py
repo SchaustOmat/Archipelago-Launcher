@@ -8,6 +8,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+from . import jobs
 from .config import Paths
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -87,6 +88,7 @@ class Server:
         self.proc = subprocess.Popen(args, cwd=self.paths.ap, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      stdin=subprocess.PIPE, creationflags=NO_WINDOW,
                                      text=True, encoding="utf-8", errors="replace")
+        jobs.bind(self.proc)  # dies with the launcher, never left running on its own
         threading.Thread(target=self._pump, daemon=True).start()
 
     def _pump(self):

@@ -12,6 +12,7 @@ Windows-Launcher (tkinter, PyInstaller-onefile, Inno-Setup) für eine lokale Arc
   `aplauncher/config.py` (`APP_VERSION`) erhöhen. Danach `build/`, `dist/`, `*.spec` löschen.
 - Installiert pro Benutzer nach `%LOCALAPPDATA%\Programs\ArchipelagoLauncher`; Spiele/Spielstände in
   `C:\APLauncher` (`sessions\` = Host-Spielstände `.apsave`, `soh\Save` = SoH-Saves).
+- Server und Tracker hängen per Windows-Job (`jobs.py`) am Launcher und sterben mit ihm.
 - **Nie still installieren, solange `ArchipelagoLauncher.exe` oder `ArchipelagoServer.exe` läuft** –
   Inno schließt den Launcher und der Server läuft verwaist weiter (Mitspieler noch verbunden).
 - Testen auf anderen Ports (z. B. 38299), nie einen laufenden Server auf 38281 anfassen.

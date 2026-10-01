@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 from tkinter import ttk
 
-from . import goals, hud, places, theme, widgets
+from . import goals, hud, jobs, places, theme, widgets
 from .config import Paths
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -56,7 +56,9 @@ class Overlay:
             args += ["--password", password]
         if yaml_dir:
             args += ["--yaml-dir", str(yaml_dir)]
-        return subprocess.Popen(args, cwd=self.paths.ap, creationflags=NO_WINDOW)
+        proc = subprocess.Popen(args, cwd=self.paths.ap, creationflags=NO_WINDOW)
+        jobs.bind(proc)
+        return proc
 
     def close(self):
         if self.proc and self.proc.poll() is None:
