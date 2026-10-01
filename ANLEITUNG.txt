@@ -25,6 +25,8 @@ Einrichten (einmalig)
     * Ocarina of Time: ca. 5 Minuten
     * Super Mario 64: ca. 10-15 Minuten (das Spiel wird auf deinem PC gebaut)
    Alles landet in C:\APLauncher.
+   Fragt Windows "Möchten Sie zulassen, dass diese App Änderungen vornimmt?"
+   (beim Installieren von Archipelago): "Ja".
 4. Optional: "Optionen bearbeiten (YAML)" für Spieleinstellungen.
 
 Mitspielen
