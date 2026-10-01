@@ -8,7 +8,7 @@ import uuid
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import apclient, config, games, host, lobby, roms
+from . import apclient, config, games, host, lobby, roms, theme
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
 
@@ -33,6 +33,10 @@ class App:
         self.root.geometry("980x760")
         self.root.minsize(820, 620)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        theme.apply(self.root)
+        theme.dark_titlebar(self.root)
+        self.ap_connected = False
+        self.friend_address = ""
         self._build()
         self._load_fields()
         self.root.after(POLL_MS, self._drain)
@@ -62,7 +66,7 @@ class App:
         self.e_rom.grid(row=1, column=1, columnspan=3, sticky="we", **pad)
         self.b_rom = ttk.Button(me, text="Durchsuchen ...", command=self.pick_rom)
         self.b_rom.grid(row=1, column=4, sticky="w", **pad)
-        self.l_rom = ttk.Label(me, text="", foreground="gray")
+        self.l_rom = ttk.Label(me, text="", style="Muted.TLabel")
         self.l_rom.grid(row=2, column=1, columnspan=4, sticky="w", padx=6)
 
         ttk.Label(me, text="Installationsordner:").grid(row=3, column=0, sticky="w", **pad)
@@ -97,9 +101,9 @@ class App:
         btns.grid(row=1, column=0, columnspan=6, sticky="we", pady=(6, 0))
         self.b_host = ttk.Button(btns, text="Server hosten", command=self.host_start)
         self.b_join = ttk.Button(btns, text="Beitreten", command=self.client_join)
-        self.b_gen = ttk.Button(btns, text="Multiworld generieren & starten", command=self.host_generate)
+        self.b_gen = ttk.Button(btns, text="Multiworld generieren & starten", command=self.host_generate, style="Accent.TButton")
         self.b_resume = ttk.Button(btns, text="Spielstand fortsetzen ...", command=self.host_resume)
-        self.b_play = ttk.Button(btns, text="▶ Spiel starten", command=self.play)
+        self.b_play = ttk.Button(btns, text="▶ Spiel starten", command=self.play, style="Accent.TButton")
         self.b_stop = ttk.Button(btns, text="Beenden / Verlassen", command=self.stop_all)
         for b in (self.b_host, self.b_join, self.b_gen, self.b_resume, self.b_play, self.b_stop):
             b.pack(side="left", padx=4)
@@ -107,9 +111,11 @@ class App:
         net.grid(row=2, column=0, columnspan=6, sticky="we", pady=(4, 0))
         ttk.Button(net, text="Port testen", command=self.port_test).pack(side="left", padx=4)
         ttk.Button(net, text="playit.gg (ohne Portfreigabe)", command=self.playit).pack(side="left", padx=4)
-        self.l_addr = ttk.Label(net, text="", foreground="#0a5")
+        self.l_addr = tk.Label(net, text="", bg=theme.BG, fg=theme.OK, cursor="hand2",
+                               font=("Segoe UI", 10, "bold"))
         self.l_addr.pack(side="left", padx=10)
-        self.l_state = ttk.Label(mw, text="Nicht verbunden.", font=("Segoe UI", 10, "bold"))
+        self.l_addr.bind("<Button-1>", lambda e: self.copy_address())
+        self.l_state = ttk.Label(mw, text="Nicht verbunden.", style="State.TLabel")
         self.l_state.grid(row=3, column=0, columnspan=6, sticky="w", padx=6, pady=(6, 0))
 
         pane = ttk.PanedWindow(top, orient="vertical")
@@ -120,12 +126,14 @@ class App:
         for c, t, w in zip(cols, ("Name", "Spiel", "Status", "Fortschritt"), (160, 260, 160, 140)):
             self.tree.heading(c, text=t)
             self.tree.column(c, width=w, anchor="w")
-        self.tree.tag_configure("me", font=("Segoe UI", 9, "bold"))
+        self.tree.tag_configure("me", font=("Segoe UI", 10, "bold"), foreground=theme.ACCENT_HI)
         self.tree.pack(fill="both", expand=True)
         pane.add(pf, weight=1)
 
         lf = ttk.LabelFrame(pane, text="Log", padding=4)
-        self.log_box = tk.Text(lf, height=12, wrap="word", state="disabled", font=("Consolas", 9))
+        self.log_box = tk.Text(lf, height=12, wrap="word", state="disabled", font=("Consolas", 10),
+                               padx=6, pady=4)
+        theme.style_text(self.log_box)
         sb = ttk.Scrollbar(lf, command=self.log_box.yview)
         self.log_box.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
@@ -185,14 +193,14 @@ class App:
     def _check_rom(self):
         g = self.game
         if g not in GAMES:
-            self.l_rom.configure(text="Keine ROM nötig.", foreground="gray")
+            self.l_rom.configure(text="Keine ROM nötig.", foreground=theme.MUTED)
             return
         path = self.v_rom.get().strip()
         if not path:
-            self.l_rom.configure(text="Bitte die eigene ROM auswählen (.z64/.n64/.v64).", foreground="gray")
+            self.l_rom.configure(text="Bitte die eigene ROM auswählen (.z64/.n64/.v64).", foreground=theme.MUTED)
             return
         ok, text = roms.describe(g, path)
-        self.l_rom.configure(text=("✓ " if ok else "✗ ") + text, foreground="#0a5" if ok else "#c00")
+        self.l_rom.configure(text=("✓ " if ok else "✗ ") + text, foreground=theme.OK if ok else theme.ERR)
 
     def _installer(self):
         return Installer(self.paths, self.log_threadsafe, self.progress_threadsafe)
@@ -210,7 +218,7 @@ class App:
     def _update_install_label(self):
         ok = self._installed()
         self.l_inst.configure(text="✓ installiert" if ok else "noch nicht installiert",
-                              foreground="#0a5" if ok else "#c60")
+                              foreground=theme.OK if ok else theme.WARN)
 
     def _refresh_buttons(self):
         idle = self.mode is None
@@ -220,7 +228,8 @@ class App:
         lobby_open = self.mode == "host" and self.lobby is not None and self.lobby.state == "lobby"
         self.b_gen.configure(state="normal" if lobby_open and not self.busy else "disabled")
         self.b_stop.configure(state="disabled" if idle else "normal")
-        self.b_play.configure(state="normal" if self.game in GAMES else "disabled")
+        # Only once the real Archipelago server answers; before that the port belongs to the lobby.
+        self.b_play.configure(state="normal" if self.game in GAMES and self.ap_connected else "disabled")
         self.b_install.configure(state="disabled" if self.busy else "normal")
 
     # ================= thread-safe plumbing =================
@@ -408,9 +417,23 @@ class App:
     def _show_public_address(self):
         def work():
             ip = host.public_ip()
-            self.call(self.l_addr.configure,
-                      {"text": f"Adresse für Freunde: {ip}:{self.port}" if ip else "Öffentliche IP unbekannt"})
+            self.call(self._set_friend_address, f"{ip}:{self.port}" if ip else "")
         threading.Thread(target=work, daemon=True).start()
+
+    def _set_friend_address(self, address):
+        self.friend_address = address
+        if address:
+            self.l_addr.configure(text=f"Adresse für Freunde: {address}   (Klicken zum Kopieren)", fg=theme.OK)
+        else:
+            self.l_addr.configure(text="")
+
+    def copy_address(self):
+        if not self.friend_address:
+            return
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.friend_address)
+        self.l_addr.configure(text=f"✓ Kopiert: {self.friend_address}", fg=theme.ACCENT_HI)
+        self.root.after(1800, lambda: self._set_friend_address(self.friend_address))
 
     def _host_lobby_tick(self):
         if self.mode == "host" and self.lobby and self.lobby.state == "lobby":
@@ -467,7 +490,10 @@ class App:
         win = tk.Toplevel(self.root)
         win.title("Spielstand fortsetzen")
         win.geometry("620x300")
+        win.configure(bg=theme.BG)
+        theme.dark_titlebar(win)
         lb = tk.Listbox(win)
+        theme.style_text(lb)
         lb.pack(fill="both", expand=True, padx=8, pady=8)
         for z in sessions:
             lb.insert("end", f"{z.parent.name}   –   {', '.join(host.session_players(z))}")
@@ -575,10 +601,12 @@ class App:
                 self.tree.insert("", "end", values=(r["name"], r["game"], r["status"], r["progress"]),
                                  tags=("me",) if r["me"] else ())
         elif kind == "state":
+            self.ap_connected = data["connected"]
             if data["connected"]:
                 self.set_state("Verbunden. Server läuft – '▶ Spiel starten' drücken.")
             else:
                 self.set_state(data["text"])
+            self._refresh_buttons()
         elif kind == "error":
             self.set_state(f"Fehler: {data}")
             messagebox.showerror("Archipelago", data)
@@ -666,6 +694,8 @@ class App:
 
     def _teardown(self):
         self.client_poll_stop.set()
+        self.ap_connected = False
+        self._set_friend_address("")
         if self.mode == "client" and self.v_addr.get().strip():
             addr, name, pw = self.v_addr.get().strip(), self.v_name.get().strip(), self.v_pw.get()
             threading.Thread(target=lobby.leave, args=(addr, name, pw), daemon=True).start()
