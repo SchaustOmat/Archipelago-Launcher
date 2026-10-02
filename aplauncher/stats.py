@@ -10,7 +10,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import config
+from . import config, i18n
+from .i18n import _
 
 FLAG_PROGRESSION = 0b001
 SAVE_EVERY_S = 20
@@ -123,8 +124,8 @@ def _from_save(run: dict, session: dict):
         p = run["players"].setdefault(sp["name"], _player(sp["game"]))
         got, prog = tally(sp["received"], slot)
         p.update(game=sp["game"], checks=sp["checks"], total=sp["total"],
-                 **{"from": {names.get(s, f"Spieler {s}"): n for s, n in got.items()},
-                    "prog_from": {names.get(s, f"Spieler {s}"): n for s, n in prog.items()}})
+                 **{"from": {names.get(s, _("Spieler {n}").format(n=s)): n for s, n in got.items()},
+                    "prog_from": {names.get(s, _("Spieler {n}").format(n=s)): n for s, n in prog.items()}})
 
 
 def list_runs(sessions_dir: Path | None = None) -> list[dict]:
@@ -160,7 +161,7 @@ def duration(seconds: float) -> str:
 
 def _date(iso: str | None) -> str:
     try:
-        return datetime.fromisoformat(iso).strftime("%d.%m.%Y %H:%M")
+        return i18n.date(datetime.fromisoformat(iso))
     except (TypeError, ValueError):
         return "?"
 
@@ -174,30 +175,34 @@ def report(run: dict) -> str:
     players = run.get("players", {})
     # What X found for others = what everyone else got from X.
     found = {name: sum(p.get("from", {}).get(name, 0) for p in players.values()) for name in players}
-    lines = [f"Gestartet: {_date(run.get('started'))}    Zuletzt: {_date(run.get('updated'))}",
-             f"Spielzeit (Launcher verbunden): {duration(run.get('play_seconds', 0))}", ""]
+    lines = [_("Gestartet: {start}    Zuletzt: {last}").format(start=_date(run.get("started")),
+                                                              last=_date(run.get("updated"))),
+             _("Spielzeit (Launcher verbunden): {time}").format(time=duration(run.get("play_seconds", 0))), ""]
     for name, p in sorted(players.items(), key=lambda kv: -kv[1].get("checks", 0)):
         pct = f" ({100 * p['checks'] // p['total']}%)" if p.get("total") else ""
         got, prog = sum(p.get("from", {}).values()), sum(p.get("prog_from", {}).values())
         lines.append(f"■ {name}  ·  {p.get('game', '')}")
         lines.append(f"    Checks: {p.get('checks', 0)}/{p.get('total', 0)}{pct}"
-                     + (f"    🏆 Ziel: {_date(p['goal_at'])}" if p.get("goal_at") else ""))
-        lines.append(f"    Für andere gefunden: {found[name]}    "
-                     f"Von anderen bekommen: {got} (davon wichtig: {prog})")
+                     + ("    " + _("🏆 Ziel: {date}").format(date=_date(p["goal_at"])) if p.get("goal_at") else ""))
+        lines.append("    " + _("Für andere gefunden: {found}    Von anderen bekommen: {got} (davon wichtig: {prog})")
+                     .format(found=found[name], got=got, prog=prog))
         if p.get("prog_from"):
             best, n = max(p["prog_from"].items(), key=lambda kv: kv[1])
-            lines.append(f"    Wichtigster Lieferant: {best} ({n} wichtige Items)")
+            lines.append("    " + _("Wichtigster Lieferant: {name} ({n} wichtige Items)").format(name=best, n=n))
         if p.get("longest_wait_s"):
-            lines.append(f"    Längste Durststrecke ohne wichtiges Item: {duration(p['longest_wait_s'])}")
+            lines.append("    " + _("Längste Durststrecke ohne wichtiges Item: {time}").format(
+                time=duration(p["longest_wait_s"])))
         lines.append("")
     if len(players) > 1:
         helper = max(found.items(), key=lambda kv: kv[1])
         waiter = max(players.items(), key=lambda kv: kv[1].get("longest_wait_s", 0))
         if helper[1]:
-            lines.append(f"🤝 Größter Helfer: {helper[0]} ({helper[1]} Items für andere)")
+            lines.append(_("🤝 Größter Helfer: {name} ({n} Items für andere)").format(name=helper[0], n=helper[1]))
         if waiter[1].get("longest_wait_s"):
-            lines.append(f"⏳ Am längsten gewartet: {waiter[0]} ({duration(waiter[1]['longest_wait_s'])})")
+            lines.append(_("⏳ Am längsten gewartet: {name} ({time})").format(
+                name=waiter[0], time=duration(waiter[1]["longest_wait_s"])))
     missing = [n for n, p in players.items() if "from" not in p]
     if missing:
-        lines.append(f"\nNoch keine Daten von: {', '.join(missing)} (deren Launcher muss einmal verbunden sein).")
+        lines.append("\n" + _("Noch keine Daten von: {names} (deren Launcher muss einmal verbunden sein).").format(
+            names=", ".join(missing)))
     return "\n".join(lines)

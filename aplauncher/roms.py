@@ -2,6 +2,8 @@
 import hashlib
 from pathlib import Path
 
+from .i18n import _
+
 SM64_HASHES = {
     "9bef1128717f958171a4afac3ed78ee2bb4e86ce": ("us", "USA"),
     "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51": ("jp", "Japan"),
@@ -47,18 +49,18 @@ def to_z64(data: bytes) -> bytes:
         b = bytearray(len(data))
         b[0::4], b[1::4], b[2::4], b[3::4] = data[3::4], data[2::4], data[1::4], data[0::4]
         return bytes(b)
-    raise RomError("Das ist keine N64-ROM (unbekannter Dateianfang). ISO/ZIP-Dateien gehen nicht, "
-                   "es muss eine entpackte .z64/.n64/.v64 sein.")
+    raise RomError(_("Das ist keine N64-ROM (unbekannter Dateianfang). ISO/ZIP-Dateien gehen nicht, "
+                     "es muss eine entpackte .z64/.n64/.v64 sein."))
 
 
 def _read(path: str) -> bytes:
     p = Path(path)
     if not path or not p.is_file():
-        raise RomError("ROM-Datei nicht gefunden.")
+        raise RomError(_("ROM-Datei nicht gefunden."))
     if p.suffix.lower() in (".zip", ".7z", ".rar"):
-        raise RomError("Bitte die ROM erst entpacken (.z64/.n64/.v64).")
+        raise RomError(_("Bitte die ROM erst entpacken (.z64/.n64/.v64)."))
     if p.stat().st_size > 128 * 1024 * 1024:
-        raise RomError("Datei ist zu groß für eine N64-ROM.")
+        raise RomError(_("Datei ist zu groß für eine N64-ROM."))
     return to_z64(p.read_bytes())
 
 
@@ -70,9 +72,9 @@ def check_sm64(path: str) -> tuple[str, str, bytes]:
         region, label = SM64_HASHES[sha]
         return region, f"Super Mario 64 ({label})", data
     if b"SUPER MARIO 64" in data[0x20:0x34]:
-        raise RomError("Super Mario 64 erkannt, aber falsche Version. Nur USA oder Japan "
-                       "(nicht Europa/Shindou) werden unterstützt.")
-    raise RomError("Keine passende Super-Mario-64-ROM (USA oder Japan nötig).")
+        raise RomError(_("Super Mario 64 erkannt, aber falsche Version. Nur USA oder Japan "
+                         "(nicht Europa/Shindou) werden unterstützt."))
+    raise RomError(_("Keine passende Super-Mario-64-ROM (USA oder Japan nötig)."))
 
 
 def check_oot(path: str) -> tuple[str, bytes]:
@@ -82,11 +84,11 @@ def check_oot(path: str) -> tuple[str, bytes]:
     if sha in OOT_HASHES:
         return f"Ocarina of Time {OOT_HASHES[sha]}", data
     if sha in OOT_MQ_HASHES:
-        raise RomError("Das ist Master Quest. SoH-Archipelago braucht die normale (nicht-MQ) Version.")
+        raise RomError(_("Das ist Master Quest. SoH-Archipelago braucht die normale (nicht-MQ) Version."))
     if b"ZELDA" in data[0x20:0x34] or b"THE LEGEND OF ZELDA" in data[0x20:0x34]:
-        raise RomError("Zelda-ROM erkannt, aber keine von SoH unterstützte Version "
-                       "(evtl. verändert/gepatcht oder Majora's Mask).")
-    raise RomError("Keine passende Ocarina-of-Time-ROM.")
+        raise RomError(_("Zelda-ROM erkannt, aber keine von SoH unterstützte Version "
+                         "(evtl. verändert/gepatcht oder Majora's Mask)."))
+    raise RomError(_("Keine passende Ocarina-of-Time-ROM."))
 
 
 def describe(game: str, path: str) -> tuple[bool, str]:
@@ -98,5 +100,5 @@ def describe(game: str, path: str) -> tuple[bool, str]:
     except RomError as e:
         return False, str(e)
     except OSError as e:
-        return False, f"ROM nicht lesbar: {e}"
+        return False, _("ROM nicht lesbar: {error}").format(error=e)
     return True, ""

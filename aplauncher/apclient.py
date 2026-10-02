@@ -13,10 +13,10 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
 from . import config, stats
+from .i18n import _
 
 NON_GAME_TAGS = {"TextOnly", "Tracker", "HintGame"}
 CLIENT_GOAL = 30
-STATUS_TEXT = {0: "offline", 5: "verbunden", 10: "bereit", 20: "spielt", 30: "Ziel erreicht"}
 
 
 class APWatcher:
@@ -97,7 +97,8 @@ class APWatcher:
                         self.ws = ws
                         await self._session(ws)
                     if not self.stopped:
-                        self.emit("state", {"connected": False, "text": "Verbindung zum Server getrennt, verbinde neu ..."})
+                        self.emit("state", {"connected": False,
+                                            "text": _("Verbindung zum Server getrennt, verbinde neu ...")})
                     announced = False
                     break
                 except FatalError as e:
@@ -107,7 +108,8 @@ class APWatcher:
                     last = e
             else:
                 if not announced and not self.stopped:
-                    self.emit("state", {"connected": False, "text": f"Server nicht erreichbar, versuche weiter ... ({last})"})
+                    self.emit("state", {"connected": False,
+                                        "text": _("Server nicht erreichbar, versuche weiter ... ({error})").format(error=last)})
                     announced = True
             if self.stopped:
                 return
@@ -155,11 +157,11 @@ class APWatcher:
                 self.location_names[game] = {v: k for k, v in pkg.get("location_name_to_id", {}).items()}
         elif cmd == "ConnectionRefused":
             errs = msg.get("errors", [])
-            text = {"InvalidSlot": f"'{self.slot_name}' ist in der laufenden Multiworld nicht dabei. "
-                                   "Der Host muss 'Beenden' und dann 'Server hosten' klicken; "
-                                   "danach hier 'Beenden' und 'Beitreten'.",
-                    "InvalidPassword": "Falsches Server-Passwort."}
-            raise FatalError(" ".join(text.get(e, e) for e in errs) or "Verbindung abgelehnt.")
+            text = {"InvalidSlot": _("'{name}' ist in der laufenden Multiworld nicht dabei. "
+                                     "Der Host muss 'Beenden' und dann 'Server hosten' klicken; "
+                                     "danach hier 'Beenden' und 'Beitreten'.").format(name=self.slot_name),
+                    "InvalidPassword": _("Falsches Server-Passwort.")}
+            raise FatalError(" ".join(text.get(e, e) for e in errs) or _("Verbindung abgelehnt."))
         elif cmd == "Connected":
             self.team, self.slot = msg["team"], msg["slot"]
             self.players = {int(s): {"name": i["name"], "game": i["game"]}
@@ -177,7 +179,7 @@ class APWatcher:
                                                       f"APL_{self.team}_{s}")]
             await self.send({"cmd": "SetNotify", "keys": keys}, {"cmd": "Get", "keys": keys})
             await self._publish()
-            self.emit("state", {"connected": True, "text": "Mit dem Server verbunden."})
+            self.emit("state", {"connected": True, "text": _("Mit dem Server verbunden.")})
             self._emit_players()
         elif cmd == "RoomUpdate":
             if "hint_points" in msg:
@@ -243,13 +245,13 @@ class APWatcher:
             info = self.launcher.get(slot, {})
             status = self.status.get(slot, 0)
             if status >= CLIENT_GOAL:
-                text = "Ziel erreicht"
+                text = _("Ziel erreicht")
             elif info.get("game"):
-                text = "Spiel verbunden"
+                text = _("Spiel verbunden")
             elif status:
-                text = "Launcher online"
+                text = _("Launcher online")
             else:
-                text = "offline"
+                text = _("offline")
             total = info.get("total") or 0
             progress = f"{info.get('checked', 0)}/{total} ({100 * info.get('checked', 0) // total}%)" if total else "-"
             rows.append({"name": p["name"], "game": p["game"], "status": text, "progress": progress,
@@ -258,7 +260,7 @@ class APWatcher:
 
     # ----- log -----
     def _name(self, slot):
-        return self.players.get(int(slot), {}).get("name", f"Spieler {slot}")
+        return self.players.get(int(slot), {}).get("name", _("Spieler {n}").format(n=slot))
 
     def _game(self, slot):
         return self.players.get(int(slot), {}).get("game", "")
@@ -272,7 +274,7 @@ class APWatcher:
             elif t == "item_id":
                 out.append(self.item_names.get(self._game(part.get("player", 0)), {}).get(int(text), f"Item {text}"))
             elif t == "location_id":
-                out.append(self.location_names.get(self._game(part.get("player", 0)), {}).get(int(text), f"Ort {text}"))
+                out.append(self.location_names.get(self._game(part.get("player", 0)), {}).get(int(text), _("Ort {n}").format(n=text)))
             else:
                 out.append(text)
         return "".join(out)
@@ -322,14 +324,16 @@ class APWatcher:
             name = self.item_names.get(self._game(receiver), {}).get(item["item"], f"Item {item['item']}")
             where = self.location_names.get(self._game(finder), {}).get(item["location"], "?")
             if finder == receiver:
-                return f"{self._name(finder)} hat {name} gefunden ({where})"
+                return _("{player} hat {item} gefunden ({location})").format(
+                    player=self._name(finder), item=name, location=where)
             return f"{self._name(finder)} → {self._name(receiver)}: {name} ({where})"
         if kind == "Join" and "slot" in msg:
-            return f"{self._name(msg['slot'])} ist mit {self._game(msg['slot'])} beigetreten."
+            return _("{player} ist mit {game} beigetreten.").format(player=self._name(msg["slot"]),
+                                                                    game=self._game(msg["slot"]))
         if kind == "Part" and "slot" in msg:
-            return f"{self._name(msg['slot'])} hat das Spiel verlassen."
+            return _("{player} hat das Spiel verlassen.").format(player=self._name(msg["slot"]))
         if kind == "Goal" and "slot" in msg:
-            return f"🏆 {self._name(msg['slot'])} hat das Ziel erreicht!"
+            return _("🏆 {name} hat das Ziel erreicht!").format(name=self._name(msg["slot"]))
         return None
 
 

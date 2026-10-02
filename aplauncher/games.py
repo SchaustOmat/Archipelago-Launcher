@@ -4,6 +4,7 @@ import os
 import subprocess
 
 from .config import Paths
+from .i18n import _
 
 
 class GameError(Exception):
@@ -21,7 +22,7 @@ def server_address(address: str) -> str:
 def launch_sm64(paths: Paths, region: str, address: str, name: str, password: str):
     exe = paths.sm64_exe_for(region)
     if not exe.is_file():
-        raise GameError("Super Mario 64 ist noch nicht gebaut. Erst 'Installieren' ausführen.")
+        raise GameError(_("Super Mario 64 ist noch nicht gebaut. Erst 'Installieren' ausführen."))
     args = [str(exe), "--sm64ap_name", name, "--sm64ap_ip", server_address(address)]
     if password:
         args += ["--sm64ap_passwd", password]
@@ -50,6 +51,6 @@ def configure_soh(paths: Paths, address: str, name: str, password: str):
 
 def launch_soh(paths: Paths, address: str, name: str, password: str):
     if not paths.soh_exe.is_file() or not (paths.soh / "oot.o2r").is_file():
-        raise GameError("Ship of Harkinian ist noch nicht eingerichtet. Erst 'Installieren' ausführen.")
+        raise GameError(_("Ship of Harkinian ist noch nicht eingerichtet. Erst 'Installieren' ausführen."))
     configure_soh(paths, address, name, password)
     return subprocess.Popen([str(paths.soh_exe)], cwd=paths.soh)

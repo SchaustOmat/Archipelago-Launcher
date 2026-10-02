@@ -12,6 +12,7 @@ from collections import Counter
 from pathlib import Path
 
 from . import places, theme
+from .i18n import _
 
 user32 = ctypes.windll.user32
 GWL_EXSTYLE = -20
@@ -79,18 +80,18 @@ def guidance(snapshot, place):
     """Text pieces for the current place: (title, here-list, tips, next-hint)."""
     locs = (snapshot or {}).get("in_logic", [])
     if place is None:
-        title, here, tips = "📍 Ort unbekannt", [], []
+        title, here, tips = _("📍 Ort unbekannt"), [], []
     else:
-        name, prefixes, tips, _ = place
+        name, prefixes, tips, _dungeon = place
         title = f"📍 {name}"
         here = [l for l in locs if places.matches(l, prefixes)] if prefixes else []
     here.sort(key=lambda l: (not l.get("hinted"), l["name"]))
     nxt = ""
     if not here and locs:
         top = Counter(places.place_name(l) for l in locs).most_common(3)
-        nxt = "Hier ist nichts mehr erreichbar. Nächste Ziele: " + ", ".join(f"{n} ({c})" for n, c in top)
+        nxt = _("Hier ist nichts mehr erreichbar. Nächste Ziele: ") + ", ".join(f"{n} ({c})" for n, c in top)
     elif not locs and snapshot and snapshot.get("status") == "ok":
-        nxt = "Gerade nichts erreichbar – du brauchst erst neue Items."
+        nxt = _("Gerade nichts erreichbar – du brauchst erst neue Items.")
     return title, here, tips, nxt
 
 
@@ -189,7 +190,7 @@ class GameHud:
             from . import goals
             open_steps = [s for s in goals.steps_for(snap) if not s.done]
             if snap.get("beaten"):
-                goal = "✅ Go-Mode – du kannst dein Ziel erreichen!"
+                goal = _("✅ Go-Mode – du kannst dein Ziel erreichen!")
             elif open_steps:
                 s = open_steps[0]
                 prog = f" {min(s.have, s.need)}/{s.need}" if s.have is not None and s.need else ""
@@ -198,10 +199,11 @@ class GameHud:
         if here:
             lines = [("★ " if l.get("hinted") else "• ") + l["name"] for l in here[:MAX_HERE]]
             if len(here) > MAX_HERE:
-                lines.append(f"… und {len(here) - MAX_HERE} weitere")
-            self.l_here.configure(text=f"Hier erreichbar ({len(here)}):\n" + "\n".join(lines), fg=theme.FG)
+                lines.append(_("… und {n} weitere").format(n=len(here) - MAX_HERE))
+            self.l_here.configure(text=_("Hier erreichbar ({n}):").format(n=len(here)) + "\n" + "\n".join(lines),
+                                  fg=theme.FG)
         else:
-            self.l_here.configure(text=nxt or "Warte auf Daten …", fg=theme.MUTED)
+            self.l_here.configure(text=nxt or _("Warte auf Daten …"), fg=theme.MUTED)
         self.l_tips.configure(text="\n".join("💡 " + t for t in tips))
         if tips:
             self.l_tips.pack(fill="x", pady=(6, 0))

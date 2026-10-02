@@ -12,6 +12,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import config
+from .i18n import _
 
 NAME_RE = re.compile(r"^[^\s{}:][^{}:]{0,15}$")
 ONLINE_TIMEOUT = 10  # seconds without a poll before a player shows as offline
@@ -20,11 +21,11 @@ ONLINE_TIMEOUT = 10  # seconds without a poll before a player shows as offline
 def validate_name(name: str) -> str | None:
     name = name.strip()
     if not name:
-        return "Bitte einen Spielernamen eintragen."
+        return _("Bitte einen Spielernamen eintragen.")
     if len(name) > 16:
-        return "Spielername darf höchstens 16 Zeichen haben."
+        return _("Spielername darf höchstens 16 Zeichen haben.")
     if not NAME_RE.match(name):
-        return "Spielername darf keine { } : enthalten."
+        return _("Spielername darf keine { } : enthalten.")
     return None
 
 
@@ -48,10 +49,10 @@ class Lobby:
             return "Unbekanntes Spiel."
         with self.lock:
             if self.state != "lobby":
-                return "Die Multiworld wird schon erstellt; Beitreten geht nicht mehr."
+                return _("Die Multiworld wird schon erstellt; Beitreten geht nicht mehr.")
             existing = self.players.get(name)
             if existing and (existing["local"] != local or existing["cid"] != cid):
-                return "Dieser Name ist schon vergeben."
+                return _("Dieser Name ist schon vergeben.")
             for other, p in self.players.items():
                 if other != name and cid and p["cid"] == cid:
                     del self.players[other]  # same launcher renamed itself
@@ -120,7 +121,7 @@ class Lobby:
                     length = min(int(self.headers.get("Content-Length") or 0), 2_000_000)
                     data = json.loads(self.rfile.read(length) or b"{}")
                 except ValueError:
-                    return self._send(400, {"error": "Ungültige Anfrage."})
+                    return self._send(400, {"error": _("Ungültige Anfrage.")})
                 if lobby.password and data.get("password") != lobby.password:
                     return self._send(403, {"error": "Falsches Passwort."})
                 if self.path == "/aplobby/join":
@@ -180,11 +181,11 @@ def _request(address, path, payload=None, timeout=5):
             obj = {}
         raise LobbyError(obj.get("error") or f"HTTP {e.code}")
     except (urllib.error.URLError, OSError) as e:
-        raise LobbyError(f"Host nicht erreichbar ({getattr(e, 'reason', e)})", unreachable=True)
+        raise LobbyError(_("Host nicht erreichbar ({reason})").format(reason=getattr(e, 'reason', e)), unreachable=True)
     except ValueError:
-        raise LobbyError("Unter dieser Adresse läuft keine Launcher-Lobby.")
+        raise LobbyError(_("Unter dieser Adresse läuft keine Launcher-Lobby."))
     if obj.get("app") != "aplauncher" and "ok" not in obj:
-        raise LobbyError("Unter dieser Adresse läuft keine Launcher-Lobby.")
+        raise LobbyError(_("Unter dieser Adresse läuft keine Launcher-Lobby."))
     return obj
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import jobs
 from .config import Paths
+from .i18n import _
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
@@ -39,19 +40,19 @@ def _run_logged(args, cwd, log) -> int:
 def generate(paths: Paths, yamls: dict[str, str], log) -> Path:
     """Write the YAMLs into a new session folder and run ArchipelagoGenerate. Returns the multiworld zip."""
     if not yamls:
-        raise HostError("Keine Spieler in der Lobby.")
+        raise HostError(_("Keine Spieler in der Lobby."))
     session = paths.sessions / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     players = session / "players"
     players.mkdir(parents=True)
     for i, (name, text) in enumerate(sorted(yamls.items())):
         (players / f"{i:02d}.yaml").write_text(set_yaml_name(text, name), encoding="utf-8")
-    log(f"Generiere Multiworld für {len(yamls)} Spieler ...")
+    log(_("Generiere Multiworld für {n} Spieler ...").format(n=len(yamls)))
     code = _run_logged([str(paths.ap_generate), "--player_files_path", str(players),
                         "--outputpath", str(session)], paths.ap, log)
     zips = sorted(session.glob("AP_*.zip"))
     if code != 0 or not zips:
-        raise HostError("Generieren fehlgeschlagen. Meist ist eine YAML ungültig; Details im Log.")
-    log(f"Multiworld erstellt: {zips[0].name}")
+        raise HostError(_("Generieren fehlgeschlagen. Meist ist eine YAML ungültig; Details im Log."))
+    log(_("Multiworld erstellt: {name}").format(name=zips[0].name))
     return zips[0]
 
 
@@ -100,7 +101,7 @@ class Server:
         for line in self.proc.stdout:
             if line.strip():
                 self.log("[Server] " + line.rstrip())
-        self.log(f"[Server] beendet (Code {self.proc.wait()}).")
+        self.log(_("[Server] beendet (Code {code}).").format(code=self.proc.wait()))
 
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
@@ -150,7 +151,7 @@ def wait_port_free(port: int, timeout=10):
                 return
             except OSError:
                 time.sleep(0.5)
-    raise HostError(f"Port {port} ist belegt (läuft schon ein anderer Server?).")
+    raise HostError(_("Port {port} ist belegt (läuft schon ein anderer Server?).").format(port=port))
 
 
 # ----- network helpers -----

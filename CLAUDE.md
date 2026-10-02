@@ -25,6 +25,13 @@ persönlichen Daten (Namen, IPs, Pfade mit Benutzernamen) und keine fremden Mark
 - Bash-Heredocs in dieser Umgebung machen aus `\n` (und `\b`) in Python-Strings echte Steuerzeichen →
   Code-Änderungen lieber mit dem Edit-Tool, danach `python -c "import aplauncher.gui"` prüfen.
 
+## Sprachen
+Oberfläche Deutsch/Englisch (`i18n.py`): deutscher Text im Code ist die Quelle, mit `_("...")` markiert
+(Platzhalter nur über `.format(name=...)`, keine f-Strings in `_()`), Übersetzung in `en.py`. Neue/geänderte
+Texte → `python tests/i18n_check.py --missing`. Sprache wird beim Start gesetzt (Einstellung `lang`, sonst
+Windows-Sprache). `_` nie als Wegwerf-Variable benutzen. README.md englisch, README.de.md + ANLEITUNG.txt
+deutsch, GUIDE.txt englisch.
+
 ## Aufbau (`aplauncher/`)
 - `gui.py` App (Tabs Spielen/Einrichtung/Netzwerk/Log), `dialogs.py` modale Fenster (Fortsetzen, Hint,
   Statistik, Backups), `widgets.py` animierte Buttons/Pill/Tabs/Toast, `theme.py` lila Dark-Theme.

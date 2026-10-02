@@ -62,7 +62,7 @@ foreach ($exe in Get-ChildItem dist\*.exe) {
     Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force $dir | Out-Null
     Copy-Item $exe.FullName "$dir\ArchipelagoLauncher.exe"
-    Copy-Item ANLEITUNG.txt $dir
+    Copy-Item ANLEITUNG.txt, GUIDE.txt $dir
     $zip = "$out\${name}_$ver.zip"
     Remove-Item $zip -ErrorAction SilentlyContinue
     Compress-Archive -Path $dir -DestinationPath $zip

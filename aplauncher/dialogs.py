@@ -4,7 +4,8 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import messagebox, ttk
 
-from . import backup, host, stats, theme, widgets
+from . import backup, host, i18n, stats, theme, widgets
+from .i18n import _
 
 
 def modal(root, title, w, h) -> tk.Toplevel:
@@ -45,17 +46,19 @@ def _listbox(win, rows):
 
 def _session_row(zip_path) -> str:
     played = datetime.fromtimestamp(host.last_played(zip_path))
-    stamp = zip_path.parent.name  # created: YYYY-MM-DD_HH-MM-SS
-    created = f"{stamp[8:10]}.{stamp[5:7]}." if len(stamp) >= 10 else "?"
-    return (f"{played.strftime('%d.%m.%Y  %H:%M')}    –    {', '.join(host.session_players(zip_path))}"
-            f"    (erstellt {created})")
+    try:  # folder name = creation time, YYYY-MM-DD_HH-MM-SS
+        created = i18n.date(datetime.strptime(zip_path.parent.name, "%Y-%m-%d_%H-%M-%S"), with_time=False)
+    except ValueError:
+        created = "?"
+    return (f"{i18n.date(played)}    –    {', '.join(host.session_players(zip_path))}    "
+            + _("(erstellt {date})").format(date=created))
 
 
 def pick_session(root, sessions, on_pick):
     """List of saved multiworlds, last played first; on_pick(zip_path) for the chosen one."""
-    win = modal(root, "Spielstand fortsetzen", 680, 340)
-    _heading(win, "Welche Multiworld möchtest du fortsetzen?",
-             "Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand.")
+    win = modal(root, _("Spielstand fortsetzen"), 680, 340)
+    _heading(win, _("Welche Multiworld möchtest du fortsetzen?"),
+             _("Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand."))
     lb = _listbox(win, [_session_row(z) for z in sessions])
 
     def go():
@@ -63,7 +66,7 @@ def pick_session(root, sessions, on_pick):
         if sel:
             win.destroy()
             on_pick(sessions[sel[0]])
-    widgets.RoundButton(win, "▶  Diesen Spielstand starten", go, "primary", bg=theme.BG).pack(pady=(0, 12))
+    widgets.RoundButton(win, _("▶  Diesen Spielstand starten"), go, "primary", bg=theme.BG).pack(pady=(0, 12))
     lb.bind("<Double-Button-1>", lambda e: go())
     win.bind("<Return>", lambda e: go())
     win.lift()
@@ -79,9 +82,9 @@ class HintDialog:
         self.win = modal(root, "Hint", 520, 520)
         self.win.protocol("WM_DELETE_WINDOW", self.close)
         self.win.bind("<Escape>", lambda e: self.close())
-        _heading(self.win, "Wo ist mein Item?",
-                 "Ein Hint verrät, in welcher Welt und an welchem Ort ein Item von dir liegt.\n"
-                 "Die Antwort erscheint im Live-Feed und im Log.")
+        _heading(self.win, _("Wo ist mein Item?"),
+                 _("Ein Hint verrät, in welcher Welt und an welchem Ort ein Item von dir liegt.\n"
+                   "Die Antwort erscheint im Live-Feed und im Log."))
         self.l_points = tk.Label(self.win, bg=theme.BG, fg=theme.ACCENT_HI, font=("Segoe UI Semibold", 10))
         self.l_points.pack(anchor="w", padx=14, pady=(8, 0))
         self.v_filter = tk.StringVar()
@@ -93,8 +96,8 @@ class HintDialog:
         self._filter()
         row = tk.Frame(self.win, bg=theme.BG)
         row.pack(pady=(0, 12))
-        widgets.RoundButton(row, "💡  Hint holen", self.hint, "primary", bg=theme.BG).pack(side="left", padx=4)
-        widgets.RoundButton(row, "📜  Meine Hints anzeigen", lambda: self.watcher.say("!hint"),
+        widgets.RoundButton(row, _("💡  Hint holen"), self.hint, "primary", bg=theme.BG).pack(side="left", padx=4)
+        widgets.RoundButton(row, _("📜  Meine Hints anzeigen"), lambda: self.watcher.say("!hint"),
                             bg=theme.BG).pack(side="left", padx=4)
         self.lb.bind("<Double-Button-1>", lambda e: self.hint())
         self.win.bind("<Return>", lambda e: self.hint())
@@ -113,11 +116,13 @@ class HintDialog:
     def update_points(self, points, cost):
         if cost:
             enough = points >= cost
-            self.l_points.configure(text=f"Hint-Punkte: {points}  ·  ein Hint kostet {cost}"
-                                         + ("" if enough else "  –  noch zu wenig (mehr Checks machen)"),
+            self.l_points.configure(text=_("Hint-Punkte: {points}  ·  ein Hint kostet {cost}").format(
+                                             points=points, cost=cost)
+                                         + ("" if enough else "  –  " + _("noch zu wenig (mehr Checks machen)")),
                                     fg=theme.OK if enough else theme.WARN)
         else:
-            self.l_points.configure(text=f"Hint-Punkte: {points}  ·  Hints sind kostenlos", fg=theme.OK)
+            self.l_points.configure(text=_("Hint-Punkte: {points}  ·  Hints sind kostenlos").format(points=points),
+                                    fg=theme.OK)
 
     def hint(self):
         sel = self.lb.curselection()
@@ -125,8 +130,8 @@ class HintDialog:
             return
         item = self.shown[sel[0]]
         self.watcher.say(f"!hint {item}")
-        self.win.after(10, lambda: messagebox.showinfo("Hint", f"Hint für „{item}“ angefragt.\n"
-                                                               "Die Antwort steht gleich im Live-Feed.",
+        self.win.after(10, lambda: messagebox.showinfo("Hint", _("Hint für „{item}“ angefragt.\n"
+                                                                 "Die Antwort steht gleich im Live-Feed.").format(item=item),
                                                        parent=self.win))
 
     def close(self):
@@ -137,12 +142,12 @@ class HintDialog:
 def show_stats(root, paths):
     runs = stats.list_runs(paths.sessions)
     if not runs:
-        messagebox.showinfo("Statistik", "Noch keine Statistik. Sie erscheint, sobald du eine Multiworld "
-                                         "hostest oder mit einer verbunden bist.")
+        messagebox.showinfo(_("Statistik"), _("Noch keine Statistik. Sie erscheint, sobald du eine Multiworld "
+                                              "hostest oder mit einer verbunden bist."))
         return
-    win = modal(root, "Statistik", 720, 560)
-    _heading(win, "Statistik", "Items und Checks: kompletter Spielstand. Spielzeit und Durststrecke: nur, "
-                               "solange dein Launcher verbunden war.")
+    win = modal(root, _("Statistik"), 720, 560)
+    _heading(win, _("Statistik"), _("Items und Checks: kompletter Spielstand. Spielzeit und Durststrecke: nur, "
+                                    "solange dein Launcher verbunden war."))
     titles = [stats.run_title(r) for r in runs]
     v = tk.StringVar(value=titles[0])
     box = ttk.Combobox(win, textvariable=v, values=titles, state="readonly")
@@ -161,10 +166,10 @@ def show_stats(root, paths):
 
 
 def show_backups(root, paths, log):
-    win = modal(root, "Spielstand-Backups", 640, 420)
-    _heading(win, "Spielstand-Backups",
-             "Vor jedem Spielstart werden SoH-, Mario-64- und Server-Spielstände gesichert (die letzten "
-             f"{backup.KEEP}).\nWiederherstellen geht nur, wenn Spiel und Server beendet sind.")
+    win = modal(root, _("Spielstand-Backups"), 640, 420)
+    _heading(win, _("Spielstand-Backups"),
+             _("Vor jedem Spielstart werden SoH-, Mario-64- und Server-Spielstände gesichert (die letzten "
+               "{n}).\nWiederherstellen geht nur, wenn Spiel und Server beendet sind.").format(n=backup.KEEP))
     items = []
     lb = _listbox(win, [])
 
@@ -172,16 +177,16 @@ def show_backups(root, paths, log):
         items[:] = backup.list_backups(paths)
         lb.delete(0, "end")
         for b in items:
-            lb.insert("end", f"  {b['time'].strftime('%d.%m.%Y  %H:%M')}    –    {b['reason']}  "
-                             f"({len(b['files'])} Dateien)")
+            lb.insert("end", f"  {i18n.date(b['time'])}    –    {_(b['reason'])}  "
+                             + _("({n} Dateien)").format(n=len(b["files"])))
         if items:
             lb.selection_set(0)
 
     def now():
         if backup.create(paths, "von Hand", force=True):
-            log("Backup erstellt.")
+            log(_("Backup erstellt."))
         else:
-            messagebox.showinfo("Backup", "Keine Spielstände gefunden.", parent=win)
+            messagebox.showinfo("Backup", _("Keine Spielstände gefunden."), parent=win)
         refresh()
 
     def restore():
@@ -189,22 +194,23 @@ def show_backups(root, paths, log):
         if not sel:
             return
         b = items[sel[0]]
-        if not messagebox.askyesno("Wiederherstellen", f"Spielstände vom {b['time'].strftime('%d.%m.%Y %H:%M')} "
-                                   "zurückspielen?\nDer aktuelle Stand wird vorher selbst gesichert.", parent=win):
+        if not messagebox.askyesno(_("Wiederherstellen"), _("Spielstände vom {date} zurückspielen?\n"
+                                                             "Der aktuelle Stand wird vorher selbst gesichert.").format(
+                                       date=i18n.date(b["time"])), parent=win):
             return
         try:
             backup.restore(paths, b)
         except (backup.BackupError, OSError) as e:
-            messagebox.showerror("Wiederherstellen", str(e), parent=win)
+            messagebox.showerror(_("Wiederherstellen"), str(e), parent=win)
             return
-        log(f"Backup vom {b['time'].strftime('%d.%m.%Y %H:%M')} wiederhergestellt.")
-        messagebox.showinfo("Wiederherstellen", "Fertig.", parent=win)
+        log(_("Backup vom {date} wiederhergestellt.").format(date=i18n.date(b["time"])))
+        messagebox.showinfo(_("Wiederherstellen"), _("Fertig."), parent=win)
         refresh()
 
     row = tk.Frame(win, bg=theme.BG)
     row.pack(pady=(0, 12))
-    widgets.RoundButton(row, "↩  Wiederherstellen", restore, "primary", bg=theme.BG).pack(side="left", padx=4)
-    widgets.RoundButton(row, "💾  Jetzt sichern", now, bg=theme.BG).pack(side="left", padx=4)
-    widgets.RoundButton(row, "📂  Ordner", lambda: os.startfile(paths.root / "backups")
+    widgets.RoundButton(row, _("↩  Wiederherstellen"), restore, "primary", bg=theme.BG).pack(side="left", padx=4)
+    widgets.RoundButton(row, _("💾  Jetzt sichern"), now, bg=theme.BG).pack(side="left", padx=4)
+    widgets.RoundButton(row, _("📂  Ordner"), lambda: os.startfile(paths.root / "backups")
                         if (paths.root / "backups").is_dir() else None, "ghost", bg=theme.BG).pack(side="left", padx=4)
     refresh()

@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .config import Paths
+from .i18n import _
 
 KEEP = 20
 MIN_GAP_S = 10 * 60  # at most one automatic backup every 10 minutes (resume + play right after each other)
@@ -92,8 +93,8 @@ def restore(paths: Paths, backup: dict):
     """Copy a backup back. Everything on disk is backed up first, so a restore can be undone."""
     busy = running_writers()
     if busy:
-        raise BackupError("Erst Spiel und Server beenden, sonst überschreiben sie die Dateien sofort wieder:\n"
-                          + ", ".join(busy))
+        raise BackupError(_("Erst Spiel und Server beenden, sonst überschreiben sie die Dateien sofort wieder:")
+                          + "\n" + ", ".join(busy))
     current = _saves(paths, paths.sessions.glob("*/*.apsave") if paths.sessions.is_dir() else [])
     if current:
         # No pruning here: the backup being restored may be the oldest one.

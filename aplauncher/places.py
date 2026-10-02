@@ -1,9 +1,12 @@
-"""Where is the player? Maps game locations (OoT scene ids, SM64 courses) to German names,
-the Archipelago region/location name prefixes found there, and short dungeon help texts.
+"""Where is the player? Maps game locations (OoT scene ids, SM64 courses) to names (German source text,
+translated with _() when handed out), the Archipelago region/location name prefixes found there, and short
+dungeon help texts.
 
 The help texts describe mechanics and puzzles only: in a randomizer the items are elsewhere,
 so they never claim what lies in a chest.
 """
+
+from .i18n import _
 
 # ---------------------------------------------------------------- Ocarina of Time
 # Overworld areas: German name and the prefixes Ship of Harkinian uses for regions/locations there.
@@ -140,12 +143,12 @@ def oot_place(scene: int):
     """(name, prefixes, help lines or [], is_dungeon) for a SoH scene number, or None if unknown."""
     if scene in _DUNGEON_SCENES:
         name, prefixes, tips = OOT_DUNGEONS[_DUNGEON_SCENES[scene]]
-        return name, prefixes, tips, True
+        return _(name), prefixes, [_(t) for t in tips], True
     if scene in _AREA_SCENES:
         name, prefixes = OOT_AREAS[_AREA_SCENES[scene]]
-        return name, prefixes, [], False
+        return _(name), prefixes, [], False
     if scene == 62:
-        return "Grotte", [], [], False
+        return _("Grotte"), [], [], False
     return None
 
 
@@ -190,18 +193,18 @@ def sm64_place(course: int):
     """(name, prefixes, tips, is_level) for a SM64 course number."""
     if course in SM64_COURSES:
         name, prefixes = SM64_COURSES[course]
-        return name, prefixes, SM64_TIPS.get(course, []), True
-    return "Schloss", SM64_CASTLE_PREFIXES, [], False
+        return name, prefixes, [_(t) for t in SM64_TIPS.get(course, [])], True
+    return _("Schloss"), SM64_CASTLE_PREFIXES, [], False
 
 
 def place_name(loc: dict) -> str:
     """German area/dungeon/course name for an in-logic location (falls back to its region)."""
-    groups = [(n, p) for n, p, _ in OOT_DUNGEONS.values()] + list(OOT_AREAS.values()) + list(SM64_COURSES.values())
+    groups = [(n, p) for n, p, _tips in OOT_DUNGEONS.values()] + list(OOT_AREAS.values()) + list(SM64_COURSES.values())
     for name, prefixes in groups:
         if matches(loc, prefixes):
-            return name
+            return _(name)
     if matches(loc, SM64_CASTLE_PREFIXES):
-        return "Schloss"
+        return _("Schloss")
     return loc.get("region") or "?"
 
 

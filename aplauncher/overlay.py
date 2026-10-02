@@ -13,6 +13,7 @@ from tkinter import ttk
 
 from . import goals, hud, jobs, places, theme, widgets
 from .config import Paths
+from .i18n import _
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 POLL_MS = 1000
@@ -89,22 +90,22 @@ class Overlay:
         self.l_title.pack(side="left")
         self.pill = widgets.StatusPill(head)
         self.pill.pack(side="right")
-        self.pill.set("busy", "Berechne …")
+        self.pill.set("busy", _("Berechne …"))
 
         opts = tk.Frame(top, bg=theme.BG)
         opts.pack(fill="x", pady=(0, 6))
         self.v_top = tk.BooleanVar(value=True)
         self.v_hud = tk.BooleanVar(value=True)
-        ttk.Checkbutton(opts, text="Immer oben", variable=self.v_top,
+        ttk.Checkbutton(opts, text=_("Immer oben"), variable=self.v_top,
                         command=lambda: self.win.attributes("-topmost", self.v_top.get())).pack(side="left")
-        ttk.Checkbutton(opts, text="HUD im Spiel", variable=self.v_hud,
+        ttk.Checkbutton(opts, text=_("HUD im Spiel"), variable=self.v_hud,
                         command=lambda: self.hud.set_enabled(self.v_hud.get())).pack(side="left", padx=12)
         self.l_status = tk.Label(top, text="", bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9), anchor="w",
                                  justify="left", wraplength=390)
         self.l_status.pack(fill="x")
 
-        here = self._card(top, "📍 Hier")
-        self.l_place = tk.Label(here, text="Ort unbekannt – Spiel starten", bg=theme.PANEL, fg=theme.FG,
+        here = self._card(top, _("📍 Hier"))
+        self.l_place = tk.Label(here, text=_("Ort unbekannt – Spiel starten"), bg=theme.PANEL, fg=theme.FG,
                                 font=("Segoe UI Semibold", 11), anchor="w")
         self.l_place.pack(fill="x")
         self.l_here = tk.Label(here, text="", bg=theme.PANEL, fg=theme.FG, font=("Segoe UI", 9), anchor="w",
@@ -114,11 +115,11 @@ class Overlay:
                                justify="left", wraplength=380)
         self.l_tips.pack(fill="x", pady=(4, 0))
 
-        gf = self._card(top, "🎯 Ziel")
+        gf = self._card(top, _("🎯 Ziel"))
         self.goal_frame = tk.Frame(gf, bg=theme.PANEL)
         self.goal_frame.pack(fill="x")
 
-        nf = self._card(top, "🧭 Alles Erreichbare", expand=True)
+        nf = self._card(top, _("🧭 Alles Erreichbare"), expand=True)
         box = tk.Frame(nf, bg=theme.PANEL)
         box.pack(fill="both", expand=True, pady=(4, 0))
         self.tree = ttk.Treeview(box, show="tree", selectmode="none")
@@ -133,7 +134,7 @@ class Overlay:
         self.tree.bind("<<TreeviewOpen>>", lambda e: self._remember_open(True))
         self.tree.bind("<<TreeviewClose>>", lambda e: self._remember_open(False))
 
-        rf = self._card(top, "📦 Zuletzt erhalten")
+        rf = self._card(top, _("📦 Zuletzt erhalten"))
         self.recv = tk.Text(rf, height=4, wrap="none", state="disabled", font=("Segoe UI", 9))
         theme.style_text(self.recv)
         self.recv.pack(fill="x", pady=(4, 0))
@@ -166,25 +167,25 @@ class Overlay:
             self._render(self.snapshot, place)
         self.last_place = place_key
         if self.proc.poll() is not None and (not snap or snap.get("status") != "error"):
-            self.pill.set("error", "Tracker aus")
-            self.l_status.configure(text="Logik-Tracker wurde beendet. Overlay schließen und neu öffnen.",
+            self.pill.set("error", _("Tracker aus"))
+            self.l_status.configure(text=_("Logik-Tracker wurde beendet. Overlay schließen und neu öffnen."),
                                     fg=theme.ERR)
         self.win.after(POLL_MS, self._poll)
 
     def _render(self, snap, place):
         status = snap.get("status")
         if status == "starting":
-            self.pill.set("busy", "Berechne …")
+            self.pill.set("busy", _("Berechne …"))
             return
         if status == "error":
             err = (snap.get("error") or "").strip().splitlines()
-            self.pill.set("error", "Fehler")
-            self.l_status.configure(text="Fehler im Logik-Tracker: " + (err[-1] if err else "?"), fg=theme.ERR)
+            self.pill.set("error", _("Fehler"))
+            self.l_status.configure(text=_("Fehler im Logik-Tracker: ") + (err[-1] if err else "?"), fg=theme.ERR)
             return
         self.l_title.configure(text=f"{snap.get('slot_name', self.slot)}")
         if snap.get("beaten"):
             self.pill.set("connected", "Go-Mode!")
-            self.l_status.configure(text="✅ Du kannst dein Ziel jetzt erreichen!", fg=theme.OK)
+            self.l_status.configure(text=_("✅ Du kannst dein Ziel jetzt erreichen!"), fg=theme.OK)
         else:
             self.pill.set("connected", "Live")
             self.l_status.configure(text=snap.get("game", ""), fg=theme.MUTED)
@@ -192,17 +193,17 @@ class Overlay:
         self._render_goals(goals.steps_for(snap))
         self._render_reachable(snap.get("in_logic", []), place)
         self._render_received(snap.get("received", []))
-        extra = f" · {snap['glitched']} nur mit Tricks" if snap.get("glitched") else ""
-        self.l_foot.configure(text=f"Gefunden {snap.get('checked', 0)}/{snap.get('total', 0)} · "
-                                   f"erreichbar {len(snap.get('in_logic', []))}{extra}")
+        extra = " · " + _("{n} nur mit Tricks").format(n=snap["glitched"]) if snap.get("glitched") else ""
+        self.l_foot.configure(text=_("Gefunden {checked}/{total} · erreichbar {reachable}").format(
+            checked=snap.get("checked", 0), total=snap.get("total", 0), reachable=len(snap.get("in_logic", []))) + extra)
 
     def _render_here(self, snap, place):
         title, here, tips, nxt = hud.guidance(snap, place)
-        self.l_place.configure(text=title.replace("📍 ", "") if place else "Ort unbekannt – Spiel starten")
+        self.l_place.configure(text=title.replace("📍 ", "") if place else _("Ort unbekannt – Spiel starten"))
         if here:
             lines = [("★ " if l.get("hinted") else "• ") + l["name"] for l in here[:10]]
             if len(here) > 10:
-                lines.append(f"… und {len(here) - 10} weitere")
+                lines.append(_("… und {n} weitere").format(n=len(here) - 10))
             self.l_here.configure(text="\n".join(lines), fg=theme.FG)
         else:
             self.l_here.configure(text=nxt, fg=theme.MUTED)
@@ -240,7 +241,7 @@ class Overlay:
         y = self.tree.yview()[0]
         self.tree.delete(*self.tree.get_children())
         if not order:
-            self.tree.insert("", "end", text="Nichts erreichbar – du brauchst erst neue Items.", tags=("loc",))
+            self.tree.insert("", "end", text=_("Nichts erreichbar – du brauchst erst neue Items."), tags=("loc",))
         for name, items in order:
             is_here = name == current
             mark = "📍 " if is_here else ("★ " if any(l["hinted"] for l in items) else "")

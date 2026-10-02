@@ -1,0 +1,110 @@
+ARCHIPELAGO LAUNCHER – Super Mario 64 + Ocarina of Time
+=======================================================
+
+What you need
+-------------
+- Windows 10 or 11 (64-bit) and internet
+- Your own ROM (NOT included):
+    * Super Mario 64: USA or Japan version (.z64 / .n64 / .v64)
+    * Ocarina of Time: any version except Master Quest
+  Unpack ZIP files first.
+
+Starting
+--------
+1. Run the setup (ArchipelagoLauncher-Setup_<version>.exe), or unpack the ZIP
+   (right-click -> "Extract All") and start ArchipelagoLauncher.exe.
+2. If "Windows protected your PC" shows up:
+   "More info" -> "Run anyway".
+   (The program is just not digitally signed.)
+
+Setup (once, tab "⚙ Setup")
+---------------------------
+1. Enter a player name (max. 16 characters, everyone needs a different name).
+   Below it you can pick the language (Deutsch / English).
+2. Click your game (card) and choose your ROM with "Browse ...".
+   A green check mark means the ROM fits.
+3. Click "Install / Check" and wait:
+    * Ocarina of Time: about 5 minutes
+    * Super Mario 64: about 10-15 minutes (the game is built on your PC)
+   Everything goes into C:\APLauncher.
+   If Windows asks "Do you want to allow this app to make changes to your device?"
+   (while installing Archipelago): "Yes".
+4. Optional: "Edit YAML" or "Options Creator" for game settings.
+   OoT: "SoH mods / textures" for texture packs.
+
+Joining (tab "🎮 Play")
+-----------------------
+1. Enter the host's address under "Server address" (e.g. 84.123.45.67:38281)
+   and the password if there is one.
+2. Click "Join". You will see yourself in the player list.
+3. When the host starts, "▶ Play" becomes clickable.
+    * Mario 64 connects by itself.
+    * Ocarina of Time: on the title screen create a NEW save file and choose
+      "Archipelago". Every new multiworld needs a new save file.
+
+Overlay and in-game HUD (goals and "where to go next")
+------------------------------------------------------
+Once you are connected: click "🗺 Overlay".
+* In the game a HUD shows up in the top right (clicks go through it) while the game is in
+  front. It shows where you are, what you can still reach HERE (★ = hinted), your next
+  goal – and short tips in temples/dungeons (which items, puzzles, boss).
+  If nothing is left here, it names the next areas with reachable locations.
+* The overlay window shows the same in more detail: goal with progress, everything
+  reachable by area/temple (expandable), recently received items.
+* Untick "In-game HUD" in the overlay if you don't want it.
+* Play in windowed or borderless fullscreen mode (SoH: F11), otherwise the HUD is not
+  visible. Location detection starts once the game was started from the launcher.
+
+Hints, notifications, statistics
+--------------------------------
+* "💡 Hint" (when connected): pick an item of your game -> the server tells you where it
+  is. Costs hint points (you get them for checks); points and cost are shown in the window.
+* When you get an important item from someone else or someone reaches their goal, a
+  message appears (in the launcher and in the HUD) with a sound. Turn the sound off:
+  Setup -> "Sound for important items".
+* "📊 Statistics": play time, checks per player, who helped whom the most and who waited
+  longest for an important item.
+
+Save backups
+------------
+Before every game start the launcher backs up the saves (OoT, Mario 64 and, for the host,
+the multiworld) to C:\APLauncher\backups (the last 20). To get one back:
+Setup -> "🗄 Backups" -> pick an entry -> "Restore" (close game and server first).
+
+Updates
+-------
+When there is a new version, "⬆ Update" appears in the top right. One click downloads and
+installs it (games and saves are kept).
+
+Hosting
+-------
+1. Tab "🎮 Play": click "Host server". The address for friends is shown in green in the
+   window – click it to copy.
+   Using Radmin VPN/Hamachi: the launcher detects it and shows the Radmin/Hamachi
+   address automatically. You can set a different address in the "🌐 Network" tab.
+2. Tab "🌐 Network": "Test port". If the port is reachable, friends can join directly
+   with your address. If the Windows firewall asks: "Allow".
+   If it is NOT reachable, there are two ways:
+   a) Port forwarding in your router: forward TCP port 38281 to this PC
+      (the router's menu is usually called "Port forwarding" or "Virtual server").
+   b) playit.gg (no router needed): "Set up playit.gg" button in the launcher.
+      - The first time, playit gets installed (Windows asks for admin rights) and is
+        linked once to a free playit account (open the link in the window).
+      - Then the tunnel page opens: "Add Tunnel", type TCP (do NOT pick a game),
+        Local Address 127.0.0.1, Local Port 38281, save.
+      - Paste the tunnel address (e.g. abc.gl.at.ply.gg:12345) into the launcher window.
+        From then on it is shown as "Address for friends" (click = copy).
+      - playit runs in the background (icon in the bottom right of the taskbar).
+3. When everyone is in the list: "Start multiworld".
+4. To continue another day: "Resume save ...".
+
+Problems
+--------
+- "The host cannot be reached ...": check the address; the host must have clicked
+  "Host server", otherwise the host is missing port forwarding -> use playit.gg.
+- "... is not part of the running multiworld": the host has to click "Stop" and then
+  "Host server", then click "Join" again.
+- OoT disconnects right away ("incorrect slot"): create a new Archipelago save file.
+- Error with "VCRUNTIME140.dll": install the "Microsoft Visual C++ Redistributable x64"
+  from microsoft.com.
+- SoH texture packs (.o2r/.otr): "SoH mods / textures" button.
