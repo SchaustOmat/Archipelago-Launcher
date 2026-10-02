@@ -1065,7 +1065,8 @@ class App:
 
     def install_update(self):
         info = self.update_info
-        notes = f"\n\n{info['notes'][:600]}" if info["notes"] else ""
+        text = updates.notes_for(info["notes"], i18n.lang())
+        notes = f"\n\n{text[:700]}" if text else ""
         # Private builds (own icon etc.) are built by hand; they only point to the release page.
         if not (config.is_public_build() and info["setup_url"]):
             if messagebox.askyesno("Update", _("Version {version} ist verfügbar.").format(version=info["version"])

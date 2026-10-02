@@ -14,6 +14,8 @@ persönlichen Daten (Namen, IPs, Pfade mit Benutzernamen) und keine fremden Mark
 - `.\build.ps1 -Full -Public` → dasselbe in `release\public\` mit dem neutralen Icon; nur diese Dateien
   kommen in GitHub-Releases (Tag `v<ver>`). Nur Public-Builds installieren Updates selbst
   (`assets\public_build`-Marker), private zeigen nur die Release-Seite.
+- Jede Veröffentlichung: Eintrag in `CHANGELOG.md` und Release-Notizen mit den Abschnitten `## English` und
+  `## Deutsch` (der Update-Dialog zeigt den Abschnitt der eingestellten Sprache, `updates.notes_for`).
 - Version in `aplauncher/config.py` (`APP_VERSION`) erhöhen; Update-Check fragt
   `config.UPDATE_REPO` (GitHub `owner/repo`). Danach `build/`, `dist/`, `*.spec` löschen.
 - Installiert pro Benutzer nach `%LOCALAPPDATA%\Programs\ArchipelagoLauncher`; Spiele/Spielstände in

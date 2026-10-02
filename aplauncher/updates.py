@@ -14,6 +14,15 @@ def _version(text: str) -> tuple:
     return tuple(int(n) for n in re.findall(r"\d+", text)[:3])
 
 
+def notes_for(body: str, lang: str) -> str:
+    """Release notes are written as "## English" and "## Deutsch" sections; pick the one for the UI language."""
+    sections = re.split(r"^##\s+(English|Deutsch)\s*$", body, flags=re.M)
+    by_lang = {sections[i].lower()[:2]: sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
+    want = "de" if lang == "de" else "en"
+    text = by_lang.get(want) or by_lang.get("en") or body.strip()
+    return text.replace("**", "").replace("`", "")  # shown in a plain message box
+
+
 def latest() -> dict | None:
     """{"version", "url", "notes", "setup_url", "setup_name"} if a newer release exists, else None."""
     if not config.UPDATE_REPO:
