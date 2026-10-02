@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0
+
+### New
+- **Animated interface.** All animations run on one clock that matches the monitor's refresh rate (60, 144,
+  165 Hz …) and are time-based, so they stay smooth. Buttons glow, press in and flash on click; the tab
+  underline springs to the selected tab; pages slide in and their cards light up; game cards glow with a
+  check mark; switches instead of check boxes; glowing progress bar; drifting light band and shimmering
+  title; status with a radar ping. Decoration pauses while the launcher is in the background.
+- **Delete saves:** the resume list has a 🗑 Delete button (or the Del key). The save goes to the recycle
+  bin, so it can be restored.
+- **Exact times:** the resume list shows when each multiworld was created and last played, to the second.
+
 ## 0.6.2 – first public release
 
 ### New

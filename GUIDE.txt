@@ -96,7 +96,8 @@ Hosting
         From then on it is shown as "Address for friends" (click = copy).
       - playit runs in the background (icon in the bottom right of the taskbar).
 3. When everyone is in the list: "Start multiworld".
-4. To continue another day: "Resume save ...".
+4. To continue another day: "Resume save ...". The list shows to the second when each multiworld was
+   created and last played. "Delete" moves a save to the recycle bin.
 
 Problems
 --------

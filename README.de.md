@@ -42,7 +42,8 @@ kleiner Patch (`patches/sm64_report_location.patch`), der das Level in `%APPDATA
 2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.
 3. **Port testen**. Falls nicht erreichbar: Port 38281 TCP im Router weiterleiten, oder **playit.gg** nutzen.
 4. Wenn alle drin sind: **Multiworld starten**.
-5. Später weiterspielen: **Spielstand fortsetzen …**
+5. Später weiterspielen: **Spielstand fortsetzen …** (mit Erstell- und Spielzeit; Löschen schiebt einen
+   Spielstand in den Papierkorb).
 
 Alles wird nach `C:\APLauncher` installiert (Pfad ohne Leerzeichen, wegen MSYS2).
 

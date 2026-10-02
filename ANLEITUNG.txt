@@ -98,7 +98,9 @@ Hosten
         Ab dann steht sie als "Adresse für Freunde" im Launcher (anklicken = kopieren).
       - playit läuft im Hintergrund (Symbol unten rechts in der Taskleiste).
 3. Wenn alle in der Liste sind: "Multiworld starten".
-4. Weiterspielen an einem anderen Tag: "Spielstand fortsetzen ...".
+4. Weiterspielen an einem anderen Tag: "Spielstand fortsetzen ...". Die Liste zeigt sekundengenau,
+   wann jede Multiworld erstellt und zuletzt gespielt wurde. "Löschen" verschiebt einen Spielstand in
+   den Papierkorb.
 
 Probleme
 --------

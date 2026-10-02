@@ -50,7 +50,8 @@ listens on 127.0.0.1:43384, SoH is configured for it on start); Mario 64 through
 3. **Test port**. If it is not reachable: forward TCP port 38281 in your router, use Radmin VPN/Hamachi, or
    **playit.gg** (set up from the launcher).
 4. When everyone is in: **Start multiworld**.
-5. Continue later: **Resume save …** (sorted by last played).
+5. Continue later: **Resume save …** (sorted by last played, with creation and play times; Delete moves a
+   save to the recycle bin).
 
 Everything is installed to `C:\APLauncher` (a path without spaces, because of MSYS2).
 
