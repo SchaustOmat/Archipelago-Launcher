@@ -40,6 +40,7 @@ class APWatcher:
         self.checked = set()
         self.total = 0
         self.game_clients = 0
+        self.received_items = []  # (sender slot, flags) of every item this slot has received
         self.item_names = {}    # game -> {id: name}
         self.location_names = {}
         self.hint_cost_pct = 0
@@ -142,7 +143,10 @@ class APWatcher:
             if games:
                 await self.send({"cmd": "GetDataPackage", "games": games})
             await self.send({"cmd": "Connect", "password": self.password, "game": "", "name": self.slot_name,
-                             "uuid": uuid.uuid4().hex, "items_handling": 0, "tags": ["TextOnly", "APLauncher"],
+                             # All items (like the Archipelago text client): the complete list with senders
+                             # feeds the statistics. Receiving them here changes nothing in the game.
+                             "uuid": uuid.uuid4().hex, "items_handling": 0b111,
+                             "tags": ["TextOnly", "APLauncher"],
                              "slot_data": False,
                              "version": {"major": 0, "minor": 6, "build": 7, "class": "Version"}})
         elif cmd == "DataPackage":
@@ -195,8 +199,24 @@ class APWatcher:
             for key, value in values.items():
                 self._store(key, value)
             self._emit_players()
+        elif cmd == "ReceivedItems":
+            if msg.get("index", 0) == 0:  # full list (on connect), otherwise new items
+                self.received_items = []
+            self.received_items += [(i["player"], i.get("flags", 0)) for i in msg.get("items", [])]
+            await self._publish()
         elif cmd == "PrintJSON":
             await self._print(msg)
+
+    def _received_tally(self) -> tuple[dict, dict]:
+        """Items this slot got from other players, by sender slot: (all, progression only)."""
+        got, prog = {}, {}
+        for sender, flags in self.received_items:
+            if sender in (0, self.slot):  # 0 = server (start inventory), own slot = found it yourself
+                continue
+            got[str(sender)] = got.get(str(sender), 0) + 1
+            if flags & stats.FLAG_PROGRESSION:
+                prog[str(sender)] = prog.get(str(sender), 0) + 1
+        return got, prog
 
     def _store(self, key, value):
         try:
@@ -207,15 +227,22 @@ class APWatcher:
             self.status[slot] = value or 0
         elif key.startswith("APL_") and isinstance(value, dict):
             self.launcher[slot] = value
-            if self.stats and slot in self.players and value.get("total"):
-                self.stats.progress(self.players[slot]["name"], value.get("checked", 0), value["total"])
+            if self.stats and slot in self.players:
+                name = self.players[slot]["name"]
+                if value.get("total"):
+                    self.stats.progress(name, value.get("checked", 0), value["total"])
+                if "from" in value:  # launchers from 0.6.2 on
+                    names = lambda d: {self._name(s): n for s, n in d.items()}
+                    self.stats.received(name, names(value["from"]), names(value.get("prog", {})))
 
     def _emit_hints(self):
         self.emit("hints", {"points": self.hint_points, "cost": self.hint_cost})
 
     async def _publish(self):
-        value = {"checked": len(self.checked), "total": self.total, "game": self.game_clients > 0}
-        self.launcher[self.slot] = value
+        got, prog = self._received_tally()
+        value = {"checked": len(self.checked), "total": self.total, "game": self.game_clients > 0,
+                 "from": got, "prog": prog}
+        self._store(f"APL_{self.team}_{self.slot}", value)
         await self.send({"cmd": "Set", "key": f"APL_{self.team}_{self.slot}", "default": {},
                          "want_reply": False, "operations": [{"operation": "replace", "value": value}]})
         self._emit_players()

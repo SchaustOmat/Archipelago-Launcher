@@ -97,7 +97,20 @@ for n, ev in events.items():
 for w in watchers:
     w.stop()
 time.sleep(1)
-srv.stop()
 for run in stats.list_runs():
     print(stats.report(run))
+
+# 6. a launcher that connects later (fresh statistics) still sees everything received so far
+late_dir = scratch / "late"
+late_dir.mkdir()
+stats.stats_dir = lambda: late_dir
+late = apclient.APWatcher(addr, "Link", "pw", lambda k, d: None)
+late.start()
+time.sleep(4)
+late.stop()
+time.sleep(1)
+late_run = stats.list_runs()[0]
+print("late join:", {n: p.get("from") for n, p in late_run["players"].items()})
+assert late_run["players"]["Link"]["from"].get("Mario"), "late launcher missed items received earlier"
+srv.stop()
 print("apsave exists:", any(zip_path.parent.glob("*.apsave")))
