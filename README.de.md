@@ -7,8 +7,7 @@ Ein Programm für eine lokale Archipelago-Multiworld mit **Super Mario 64** (sm6
 
 ## Für Spieler
 1. Unter [Releases](https://github.com/SchaustOmat/Archipelago-Launcher/releases/latest) das Setup laden,
-   installieren und den Launcher starten. Sprache: Einrichtung → „Sprache / Language“; Oberfläche
-   (Clean / Extrem) direkt darunter.
+   installieren und den Launcher starten. Sprache: Einrichtung → „Sprache / Language“.
 2. Spielername, Spiel und eigene ROM wählen → **Installieren / Prüfen**.
    - Mario 64: ROM USA oder Japan (.z64/.n64/.v64). Das Spiel wird einmalig auf dem PC gebaut (ca. 3–10 Min.).
    - OoT: jede Nicht-Master-Quest-Version. SoH erzeugt daraus einmalig seine Spieldaten.

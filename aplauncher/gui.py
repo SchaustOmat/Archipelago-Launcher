@@ -198,10 +198,8 @@ class App:
                                 width=20)
         lang_box.pack(anchor="w", pady=(2, 0))
         lang_box.bind("<<ComboboxSelected>>", lambda e: self.change_language())
-        ttk.Label(who, text=_("Oberfläche"), style="CardMuted.TLabel").pack(anchor="w", pady=(8, 0))
-        self._style_box(who).pack(anchor="w", pady=(2, 0))
 
-        gc =self._card(top, _("Spiel"), side="left", fill="x", expand=True)
+        gc = self._card(top, _("Spiel"), side="left", fill="x", expand=True)
         cards = ttk.Frame(gc, style="Card.TFrame")
         cards.pack(fill="x")
         self.game_labels = {**{k: g["label"] for k, g in GAMES.items()}, NO_GAME: _("Kein Spiel (nur hosten)")}
@@ -401,13 +399,6 @@ class App:
         else:
             visible = [self.b_stop]
             pill = ("busy", _("Lobby") if self.mode == "client" else _("Startet …"))
-        self._show_actions(visible)
-        for b in (self.b_host, self.b_join, self.b_resume, self.b_gen):
-            b.configure(state="disabled" if self.busy else "normal")
-        self.b_install.configure(state="disabled" if self.busy else "normal")
-        self.pill.set(*pill)
-
-    def _show_actions(self, visible):
         shown = self.actions.pack_slaves()
         if shown != visible:
             for w in shown:
@@ -416,17 +407,10 @@ class App:
                 w.pack(side="right" if w is self.b_stop else "left", padx=(0, 8))
                 if w not in shown:  # newly shown buttons pop in one after another
                     w.appear(delay=45 * i)
-
-    def _show_progress(self, frac, text):
-        if (frac is not None or text) and not self.foot.winfo_ismapped():
-            self.foot.pack(fill="x", side="bottom")
-        elif frac is None and not text:
-            self.foot.pack_forget()
-        if frac is None:
-            self.pb.indeterminate() if text else self.pb.reset()
-        else:
-            self.pb.set(frac)
-        self.l_prog.configure(text=text)
+        for b in (self.b_host, self.b_join, self.b_resume, self.b_gen):
+            b.configure(state="disabled" if self.busy else "normal")
+        self.b_install.configure(state="disabled" if self.busy else "normal")
+        self.pill.set(*pill)
 
     # ================= thread-safe plumbing =================
     def log_threadsafe(self, text):
@@ -445,7 +429,16 @@ class App:
                 if kind == "log":
                     self._log(data)
                 elif kind == "progress":
-                    self._show_progress(*data)
+                    frac, text = data
+                    if (frac is not None or text) and not self.foot.winfo_ismapped():
+                        self.foot.pack(fill="x", side="bottom")
+                    elif frac is None and not text:
+                        self.foot.pack_forget()
+                    if frac is None:
+                        self.pb.indeterminate() if text else self.pb.reset()
+                    else:
+                        self.pb.set(frac)
+                    self.l_prog.configure(text=text)
                 elif kind == "call":
                     fn, a = data
                     fn(*a)
@@ -720,10 +713,8 @@ class App:
             self._show_public_address()  # VPN detection finished after hosting started
         for vpn, ip in found:
             addr = f"{ip}:{self.port}"
-            self._vpn_button(f"{vpn}: {ip}", lambda a=addr: (self.v_public.set(a), self.save_public_address()))
-
-    def _vpn_button(self, text, command):
-        widgets.RoundButton(self.vpn_box, text, command, "ghost", height=32).pack(side="left", padx=(0, 6))
+            widgets.RoundButton(self.vpn_box, f"{vpn}: {ip}", lambda a=addr: (self.v_public.set(a),
+                                self.save_public_address()), "ghost", height=32).pack(side="left", padx=(0, 6))
 
     def _host_lobby_tick(self):
         if self.mode == "host" and self.lobby and self.lobby.state == "lobby":
@@ -1174,33 +1165,11 @@ class App:
             return
         if messagebox.askyesno("Sprache" if de else "Language",
                                "Launcher jetzt neu starten?" if de else "Restart the launcher now?"):
-            self._restart()
-
-    def _style_box(self, parent):
-        """Clean / Extreme switch; the other interface needs a restart."""
-        styles = {"clean": "Clean", "extreme": _("Extrem")}
-        self.v_style = tk.StringVar(value=styles.get(self.s.get("ui_style"), "Clean"))
-        box = ttk.Combobox(parent, textvariable=self.v_style, values=list(styles.values()), state="readonly", width=20)
-
-        def changed(e):
-            style = next(k for k, v in styles.items() if v == self.v_style.get())
-            if style == self.s.get("ui_style", "clean"):
-                return
-            self.s["ui_style"] = style
-            self._save_fields()
-            if self.mode is not None:
-                messagebox.showinfo(_("Oberfläche"), _("Die Oberfläche wechselt beim nächsten Start des Launchers."))
-            elif messagebox.askyesno(_("Oberfläche"), _("Launcher jetzt neu starten?")):
-                self._restart()
-        box.bind("<<ComboboxSelected>>", changed)
-        return box
-
-    def _restart(self):
-        self.on_close(ask=False)
-        args = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, sys.argv[0]]
-        # Without this the new exe would reuse this one's unpacked temp folder, which is deleted on exit
-        # ("Failed to import encodings module").
-        subprocess.Popen(args, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
+            self.on_close(ask=False)
+            args = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, sys.argv[0]]
+            # Without this the new exe would reuse this one's unpacked temp folder, which is deleted on exit
+            # ("Failed to import encodings module").
+            subprocess.Popen(args, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
 
     def on_close(self, ask=True):
         if ask and self.server and self.server.running():
@@ -1216,8 +1185,4 @@ class App:
 
 
 def main():
-    if config.load_settings().get("ui_style") == "extreme":
-        from .extreme.app import ExtremeApp
-        ExtremeApp().run()
-    else:
-        App().run()
+    App().run()

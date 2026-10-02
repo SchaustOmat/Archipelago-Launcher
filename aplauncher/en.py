@@ -556,25 +556,4 @@ TEXT = {
         "Super Mario 64 is not built yet. Run 'Install' first.",
     "Ship of Harkinian ist noch nicht eingerichtet. Erst 'Installieren' ausführen.":
         "Ship of Harkinian is not set up yet. Run 'Install' first.",
-    # interface style / extreme interface
-    "Oberfläche": "Interface",
-    "Extrem": "Extreme",
-    "Die Oberfläche wechselt beim nächsten Start des Launchers.":
-        "The interface changes the next time the launcher starts.",
-    "Launcher jetzt neu starten?": "Restart the launcher now?",
-    "AKTIV": "ACTIVE",
-    "Oberflächen-Sounds": "Interface sounds",
-    "Startanimation": "Start animation",
-    "Animierter Hintergrund": "Animated backdrop",
-    "Progressions-Item": "Progression item",
-    "Ziel erreicht": "Goal reached",
-    "von {sender}": "from {sender}",
-    "VPN  kein Radmin/Hamachi/Tailscale/ZeroTier-Adapter": "VPN  no Radmin/Hamachi/Tailscale/ZeroTier adapter",
-    "Update  Version {version} verfügbar": "Update  version {version} available",
-    "Grafik-Kern  {hz} Hz · {w}×{h}": "Graphics core  {hz} Hz · {w}×{h}",
-    "keine ROM gewählt": "no ROM selected",
-    "Spiel  nur hosten": "Game  host only",
-    "Archipelago  {state}": "Archipelago  {state}",
-    "installiert": "installed",
-    "fehlt": "missing",
 }

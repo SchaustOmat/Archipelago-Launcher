@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Archipelago Launcher"
-APP_VERSION = "0.8.1"
+APP_VERSION = "0.8.2"
 DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
@@ -79,10 +79,6 @@ DEFAULT_SETTINGS = {
     "password": "",
     "port": DEFAULT_PORT,
     "sounds": True,
-    "ui_style": "clean",    # "clean" | "extreme"
-    "intro": True,          # extreme: the launcher builds itself up at start
-    "ui_sounds": False,     # extreme: interface sounds
-    "bg_anim": True,        # extreme: drifting backdrop (off = still picture)
 }
 
 

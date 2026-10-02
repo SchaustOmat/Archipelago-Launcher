@@ -17,7 +17,7 @@ BACKUP_REASONS = ["vor dem Spielstart", "vor dem Fortsetzen", "von Hand", "Stand
 def marked() -> dict[str, str]:
     """German text -> file it comes from."""
     found = {}
-    for f in sorted((ROOT / "aplauncher").rglob("*.py")):
+    for f in sorted((ROOT / "aplauncher").glob("*.py")):
         for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_"
                     and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):

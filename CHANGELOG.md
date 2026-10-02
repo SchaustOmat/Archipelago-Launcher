@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2
+
+### Changed
+- **The extreme interface is gone again.** It was too heavy and lagged. The launcher is back to the animated
+  interface of 0.7.0 (no style switch, no Pillow dependency).
+
 ## 0.8.1
 
 ### Changed

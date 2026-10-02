@@ -19,9 +19,7 @@ Starten
 Einrichten (einmalig, Tab "⚙ Einrichtung")
 ------------------------------------------
 1. Spielername eintragen (max. 16 Zeichen, jeder einen anderen Namen).
-   Darunter lässt sich die Sprache wählen (Deutsch / English) und die Oberfläche:
-   "Clean" (schlicht) oder "Extrem" (baut sich beim Start sichtbar auf; Startanimation und
-   Oberflächen-Sounds unter Optionen abschaltbar, Klick oder Taste überspringt den Aufbau).
+   Darunter lässt sich die Sprache wählen (Deutsch / English).
 2. Dein Spiel anklicken (Karte) und mit "Durchsuchen ..." deine ROM wählen.
    Ein grüner Haken zeigt, dass die ROM passt.
 3. "Installieren / Prüfen" klicken und warten:
