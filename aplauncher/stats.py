@@ -1,7 +1,9 @@
-"""Per-multiworld statistics, collected from what the launcher's text client sees.
+"""Per-multiworld statistics.
 
-Stored per seed in %APPDATA%\\APLauncher\\stats\\<seed>.json, so resuming a multiworld keeps adding to it.
-Only counts what happened while this launcher was connected.
+Item counts are complete: the host reads them from the server's save, every other launcher gets them from
+the server on connect (each publishes its own tally). Play time and the longest wait between important
+items are only measured while the launcher is connected. Stored per seed in
+%APPDATA%\\APLauncher\\stats\\<seed>.json, so resuming a multiworld keeps adding to it.
 """
 import json
 import time
@@ -101,15 +103,54 @@ class RunStats:
             pass
 
 
-def list_runs() -> list[dict]:
-    """Newest first."""
-    runs = []
+def tally(received, slot: int) -> tuple[dict, dict]:
+    """Items a slot got from other players, by sender slot: (all, progression only).
+    received: (sender slot, flags) of every item the slot got."""
+    got, prog = {}, {}
+    for sender, flags in received:
+        if sender in (0, slot):  # 0 = server (start inventory), own slot = found it yourself
+            continue
+        got[sender] = got.get(sender, 0) + 1
+        if flags & FLAG_PROGRESSION:
+            prog[sender] = prog.get(sender, 0) + 1
+    return got, prog
+
+
+def _from_save(run: dict, session: dict):
+    """Overwrite counts with the server's save, which knows everything that ever happened."""
+    names = {slot: p["name"] for slot, p in session["players"].items()}
+    for slot, sp in session["players"].items():
+        p = run["players"].setdefault(sp["name"], _player(sp["game"]))
+        got, prog = tally(sp["received"], slot)
+        p.update(game=sp["game"], checks=sp["checks"], total=sp["total"],
+                 **{"from": {names.get(s, f"Spieler {s}"): n for s, n in got.items()},
+                    "prog_from": {names.get(s, f"Spieler {s}"): n for s, n in prog.items()}})
+
+
+def list_runs(sessions_dir: Path | None = None) -> list[dict]:
+    """Newest first. With the host's sessions folder, counts come from the saved multiworlds."""
+    from . import apsave
+    runs = {}
     for f in stats_dir().glob("*.json"):
         try:
-            runs.append(json.loads(f.read_text(encoding="utf-8")))
-        except (OSError, ValueError):
+            run = json.loads(f.read_text(encoding="utf-8"))
+            runs[run["seed"]] = run
+        except (OSError, ValueError, KeyError):
             continue
-    return sorted(runs, key=lambda r: r.get("updated", r.get("started", "")), reverse=True)
+    if sessions_dir and sessions_dir.is_dir():
+        for zip_path in sessions_dir.glob("*/AP_*.zip"):
+            session = apsave.read_session(zip_path)
+            if not session:
+                continue
+            created = datetime.fromtimestamp(zip_path.stat().st_mtime).isoformat(timespec="seconds")
+            played = max(f.stat().st_mtime for f in [zip_path, *zip_path.parent.glob("*.apsave")])
+            run = runs.setdefault(session["seed"], {"seed": session["seed"], "started": created,
+                                                    "play_seconds": 0, "players": {}})
+            run["started"] = min(run.get("started") or created, created)
+            run["updated"] = max(run.get("updated") or "",
+                                 datetime.fromtimestamp(played).isoformat(timespec="seconds"))
+            _from_save(run, session)
+    return sorted(runs.values(), key=lambda r: r.get("updated", r.get("started", "")), reverse=True)
 
 
 def duration(seconds: float) -> str:

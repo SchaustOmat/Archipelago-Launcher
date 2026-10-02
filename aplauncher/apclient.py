@@ -207,17 +207,6 @@ class APWatcher:
         elif cmd == "PrintJSON":
             await self._print(msg)
 
-    def _received_tally(self) -> tuple[dict, dict]:
-        """Items this slot got from other players, by sender slot: (all, progression only)."""
-        got, prog = {}, {}
-        for sender, flags in self.received_items:
-            if sender in (0, self.slot):  # 0 = server (start inventory), own slot = found it yourself
-                continue
-            got[str(sender)] = got.get(str(sender), 0) + 1
-            if flags & stats.FLAG_PROGRESSION:
-                prog[str(sender)] = prog.get(str(sender), 0) + 1
-        return got, prog
-
     def _store(self, key, value):
         try:
             slot = int(key.rsplit("_", 1)[1])
@@ -239,9 +228,10 @@ class APWatcher:
         self.emit("hints", {"points": self.hint_points, "cost": self.hint_cost})
 
     async def _publish(self):
-        got, prog = self._received_tally()
+        got, prog = stats.tally(self.received_items, self.slot)
+        # Data storage is JSON: slot numbers become string keys.
         value = {"checked": len(self.checked), "total": self.total, "game": self.game_clients > 0,
-                 "from": got, "prog": prog}
+                 "from": {str(s): n for s, n in got.items()}, "prog": {str(s): n for s, n in prog.items()}}
         self._store(f"APL_{self.team}_{self.slot}", value)
         await self.send({"cmd": "Set", "key": f"APL_{self.team}_{self.slot}", "default": {},
                          "want_reply": False, "operations": [{"operation": "replace", "value": value}]})

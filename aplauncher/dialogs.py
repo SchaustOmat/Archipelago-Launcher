@@ -134,14 +134,15 @@ class HintDialog:
         self.on_close()
 
 
-def show_stats(root):
-    runs = stats.list_runs()
+def show_stats(root, paths):
+    runs = stats.list_runs(paths.sessions)
     if not runs:
-        messagebox.showinfo("Statistik", "Noch keine Statistik. Sie wird gesammelt, sobald du mit einer "
-                                         "Multiworld verbunden bist.")
+        messagebox.showinfo("Statistik", "Noch keine Statistik. Sie erscheint, sobald du eine Multiworld "
+                                         "hostest oder mit einer verbunden bist.")
         return
     win = modal(root, "Statistik", 720, 560)
-    _heading(win, "Statistik", "Gezählt wird nur, solange dein Launcher verbunden war.")
+    _heading(win, "Statistik", "Items und Checks: kompletter Spielstand. Spielzeit und Durststrecke: nur, "
+                               "solange dein Launcher verbunden war.")
     titles = [stats.run_title(r) for r in runs]
     v = tk.StringVar(value=titles[0])
     box = ttk.Combobox(win, textvariable=v, values=titles, state="readonly")

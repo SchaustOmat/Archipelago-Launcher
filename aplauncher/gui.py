@@ -140,7 +140,7 @@ class App:
         self.b_play = widgets.RoundButton(self.actions, "▶  Spielen", self.play, "primary", height=40, size=11)
         self.b_overlay = mk("🗺  Overlay", self.toggle_overlay)
         self.b_hint = mk("💡  Hint", self.open_hints)
-        self.b_stats = mk("📊  Statistik", lambda: dialogs.show_stats(self.root))
+        self.b_stats = mk("📊  Statistik", lambda: dialogs.show_stats(self.root, self.paths))
         self.b_stop = mk("Beenden", self.stop_all, "danger")
 
         info = ttk.Frame(conn, style="Card.TFrame")
