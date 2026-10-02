@@ -5,6 +5,7 @@ Needs an installed root (Archipelago + yamls). Run: python tests/flow_test.py C:
 import asyncio
 import json
 import sys
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -12,11 +13,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from websockets.asyncio.client import connect
 
-from aplauncher import apclient, host, lobby
+from aplauncher import apclient, host, lobby, stats
 from aplauncher.config import Paths
 
 PORT = 38299
 paths = Paths(sys.argv[1] if len(sys.argv) > 1 else r"C:\APLauncher")
+# Sessions and statistics of this test must not show up in the real launcher.
+scratch = Path(tempfile.mkdtemp(prefix="aplauncher_test_"))
+paths.sessions = scratch / "sessions"
+stats.stats_dir = lambda: scratch
 log = lambda m: print("  |", m) if not m.startswith(" ") else None
 
 # 1. lobby with a local host player and a remote player
@@ -72,6 +77,12 @@ async def fake_game():
 asyncio.run(fake_game())
 time.sleep(2)
 
+# 5. hint as Mario through the text client
+mario = watchers[0]
+print("hint points/cost:", mario.hint_points, mario.hint_cost, "items:", len(mario.my_item_names()))
+mario.say("!hint Power Star")
+time.sleep(2)
+
 for n, ev in events.items():
     players = [d for k, d in ev if k == "players"]
     logs = [d for k, d in ev if k == "log"]
@@ -81,7 +92,12 @@ for n, ev in events.items():
     for line in logs[:12]:
         print("     ", line)
 
+    print("   hints:", [d for k, d in ev if k == "hints"][-1:], "received:", [d for k, d in ev if k == "received"][:3])
+
 for w in watchers:
     w.stop()
+time.sleep(1)
 srv.stop()
+for run in stats.list_runs():
+    print(stats.report(run))
 print("apsave exists:", any(zip_path.parent.glob("*.apsave")))

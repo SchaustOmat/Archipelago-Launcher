@@ -54,12 +54,34 @@ Sobald du verbunden bist: "🗺 Overlay" klicken.
   nicht sichtbar. Die Ortserkennung startet, sobald das Spiel über den Launcher gestartet
   wurde.
 
+Hints, Benachrichtigungen, Statistik
+------------------------------------
+* "💡 Hint" (wenn verbunden): Item aus deinem Spiel auswählen -> der Server verrät, wo es
+  liegt. Kostet Hint-Punkte (bekommst du für Checks); Punkte und Kosten stehen im Fenster.
+* Bekommst du ein wichtiges Item von jemand anderem oder erreicht jemand sein Ziel,
+  erscheint eine Meldung (im Launcher und im HUD) mit Ton. Ton abschalten:
+  Einrichtung -> "Ton bei wichtigen Items".
+* "📊 Statistik": Spielzeit, Checks pro Spieler, wer wem am meisten geholfen hat und wer
+  am längsten auf ein wichtiges Item warten musste.
+
+Spielstand-Backups
+------------------
+Vor jedem Spielstart sichert der Launcher die Spielstände (OoT, Mario 64 und beim Host die
+Multiworld) nach C:\APLauncher\backups (die letzten 20). Zurückholen:
+Einrichtung -> "🗄 Backups" -> Eintrag wählen -> "Wiederherstellen" (Spiel und Server
+vorher beenden).
+
+Updates
+-------
+Gibt es eine neue Version, erscheint oben rechts "⬆ Update". Ein Klick lädt sie und
+installiert sie (Spiele und Spielstände bleiben erhalten).
+
 Hosten
 ------
 1. Tab "🎮 Spielen": "Server hosten" klicken. Die Adresse für Freunde steht grün im
    Fenster – anklicken kopiert sie.
-   Nutzt ihr Radmin VPN/Hamachi: im Tab "🌐 Netzwerk" einmal auf den erkannten
-   "Radmin: 26.x.x.x"-Knopf klicken, dann wird diese Adresse angezeigt.
+   Nutzt ihr Radmin VPN/Hamachi: Der Launcher erkennt das und zeigt automatisch die
+   Radmin-/Hamachi-Adresse an. Eine andere Adresse legst du im Tab "🌐 Netzwerk" fest.
 2. Tab "🌐 Netzwerk": "Port testen". Ist der Port erreichbar, können Freunde direkt mit deiner Adresse beitreten.
    Fragt die Windows-Firewall nach: "Zulassen".
    Ist er NICHT erreichbar, gibt es zwei Wege:

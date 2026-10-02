@@ -6,6 +6,7 @@ next when nothing is left here. It only appears while the game window is in fron
 import ctypes
 import ctypes.wintypes as wt
 import os
+import time
 import tkinter as tk
 from collections import Counter
 from pathlib import Path
@@ -104,6 +105,10 @@ class GameHud:
         self.win.withdraw()
         self.frame = tk.Frame(self.win, bg=theme.BG, padx=12, pady=8)
         self.frame.pack(fill="both", expand=True)
+        # Short notice on top (item received, someone reached their goal), see notify().
+        self.l_note = tk.Label(self.frame, bg=theme.BG, fg=theme.OK, font=("Segoe UI Semibold", 10), anchor="w",
+                               justify="left", wraplength=WIDTH - 24)
+        self.note_until = 0.0
         self.l_title = tk.Label(self.frame, bg=theme.BG, fg=theme.ACCENT_HI, font=("Segoe UI Semibold", 12),
                                 anchor="w", justify="left")
         self.l_title.pack(fill="x")
@@ -133,6 +138,17 @@ class GameHud:
         if not on:
             self.win.withdraw()
 
+    def notify(self, text, seconds=7):
+        self.l_note.configure(text=text)
+        self.note_until = time.monotonic() + seconds
+
+    def _update_note(self):
+        show = time.monotonic() < self.note_until
+        if show and not self.l_note.winfo_ismapped():
+            self.l_note.pack(fill="x", pady=(0, 6), before=self.l_title)
+        elif not show and self.l_note.winfo_ismapped():
+            self.l_note.pack_forget()
+
     def destroy(self):
         if self.job:
             self.win.after_cancel(self.job)
@@ -151,6 +167,7 @@ class GameHud:
         if key != self.last_key:
             self.last_key = key
             self._render(snap, place)
+        self._update_note()
         x, y, w, h = client_rect(hwnd)
         self.win.update_idletasks()
         height = self.win.winfo_reqheight()

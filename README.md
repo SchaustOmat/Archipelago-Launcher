@@ -25,6 +25,15 @@ plus kurze Dungeon-Tipps (`aplauncher/places.py`). Den Ort liefert bei SoH desse
 (der Launcher lauscht auf 127.0.0.1:43384, SoH wird beim Start dafür konfiguriert), bei Mario 64 ein
 kleiner Patch (`patches/sm64_report_location.patch`), der das Level in `%APPDATA%\sm64ex` schreibt.
 
+## Weitere Funktionen
+- **💡 Hint:** ein Item aus dem eigenen Spiel wählen, der Server verrät den Ort (zeigt Hint-Punkte/Kosten).
+- **Benachrichtigungen:** wichtiges Item von jemand anderem oder Ziel erreicht → Meldung im Launcher und
+  im HUD, mit Ton (abschaltbar).
+- **📊 Statistik** pro Multiworld: Spielzeit, Checks, wer wem geholfen hat, längste Durststrecke.
+- **Spielstand-Backups** vor jedem Spielstart (`C:\APLauncher\backups`, Einrichtung → Backups).
+- **Updates:** neue GitHub-Releases werden erkannt und auf Klick installiert.
+- **Radmin VPN / Hamachi** werden erkannt; deren Adresse wird beim Hosten automatisch angezeigt.
+
 ## Für den Host
 1. Wie oben installieren (oder Spiel „Kein Spiel (nur hosten)“).
 2. **Server hosten** → Lobby öffnet sich auf Port 38281. Die Adresse für Freunde steht im Fenster.
@@ -38,7 +47,10 @@ Alles wird nach `C:\APLauncher` installiert (Pfad ohne Leerzeichen, wegen MSYS2)
 ```powershell
 .\build.ps1          # dist\ArchipelagoLauncher.exe (lädt beim Setup herunter)
 .\build.ps1 -Full    # zusätzlich dist\ArchipelagoLauncher-Full.exe mit Archipelago + SoH eingebaut
+.\build.ps1 -Full -Public   # Release-Build für GitHub nach release\public
 ```
+Ergebnis: `release\ArchipelagoLauncher-Setup_<version>.exe` (Inno Setup 6 nötig). Ein eigenes Icon für
+private Builds kann unter `assets\private\icon.ico`/`icon.png` liegen (nicht im Repo).
 Mario 64 kann nicht vorgebaut mitgeliefert werden (die exe enthält Daten aus der ROM).
 
 ## Versionen

@@ -1,4 +1,5 @@
-﻿; Inno Setup script for ArchipelagoLauncher-Setup.exe. build.ps1 passes AppVersion, SourceExe and OutName.
+﻿; Inno Setup script for ArchipelagoLauncher-Setup.exe. build.ps1 passes AppVersion, SourceExe, OutName, OutDir
+; and IconFile.
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
@@ -7,6 +8,12 @@
 #endif
 #ifndef OutName
   #define OutName "ArchipelagoLauncher-Setup"
+#endif
+#ifndef OutDir
+  #define OutDir "release"
+#endif
+#ifndef IconFile
+  #define IconFile "assets\icon.ico"
 #endif
 
 [Setup]
@@ -19,12 +26,12 @@ DefaultGroupName=Archipelago Launcher
 ; Installs for the current user only, so no admin prompt.
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
-OutputDir=release
+OutputDir={#OutDir}
 OutputBaseFilename={#OutName}_{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=assets\icon.ico
+SetupIconFile={#IconFile}
 UninstallDisplayIcon={app}\ArchipelagoLauncher.exe
 UninstallDisplayName=Archipelago Launcher
 
@@ -38,7 +45,7 @@ Name: "desktopicon"; Description: "Verknüpfung auf dem Desktop erstellen"; Grou
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "ArchipelagoLauncher.exe"; Flags: ignoreversion
 Source: "ANLEITUNG.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 ; Separate icon file: shortcuts use it, so Windows' icon cache of the exe never shows an old picture.
-Source: "assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#IconFile}"; DestDir: "{app}"; DestName: "icon.ico"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Archipelago Launcher"; Filename: "{app}\ArchipelagoLauncher.exe"; IconFilename: "{app}\icon.ico"

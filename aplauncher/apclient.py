@@ -12,7 +12,7 @@ import uuid
 from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
-from . import config
+from . import config, stats
 
 NON_GAME_TAGS = {"TextOnly", "Tracker", "HintGame"}
 CLIENT_GOAL = 30
@@ -24,7 +24,9 @@ class APWatcher:
         self.address = address.strip()
         self.slot_name = slot_name
         self.password = password or None
-        self.emit = emit   # emit(kind, data): "log", "players", "state", "error"
+        # emit(kind, data): "log", "players", "state", "error", "hints" (points/cost), "received" (item for me
+        # from someone else: {"item", "sender", "progression"}), "goal" (player name)
+        self.emit = emit
         self.loop = asyncio.new_event_loop()
         self.ws = None
         self.stopped = False
@@ -40,6 +42,28 @@ class APWatcher:
         self.game_clients = 0
         self.item_names = {}    # game -> {id: name}
         self.location_names = {}
+        self.hint_cost_pct = 0
+        self.hint_points = 0
+        self.stats: stats.RunStats | None = None
+
+    @property
+    def my_game(self) -> str:
+        return self.players.get(self.slot, {}).get("game", "")
+
+    @property
+    def hint_cost(self) -> int:
+        """Same formula as the server: a percentage of this slot's location count, at least 1."""
+        if not self.hint_cost_pct:
+            return 0
+        return max(1, int(self.hint_cost_pct * 0.01 * self.total))
+
+    def my_item_names(self) -> list[str]:
+        return sorted(self.item_names.get(self.my_game, {}).values(), key=str.lower)
+
+    def say(self, text: str):
+        """Chat message or server command (e.g. !hint) as this slot."""
+        if self.ws:
+            asyncio.run_coroutine_threadsafe(self.send({"cmd": "Say", "text": text}), self.loop)
 
     def start(self):
         self.thread.start()
@@ -92,13 +116,28 @@ class APWatcher:
         await self.ws.send(json.dumps(list(cmds)))
 
     async def _session(self, ws):
-        async for raw in ws:
-            for msg in json.loads(raw):
-                await self._handle(msg)
+        clock = asyncio.create_task(self._count_time())
+        try:
+            async for raw in ws:
+                for msg in json.loads(raw):
+                    await self._handle(msg)
+        finally:
+            clock.cancel()
+            if self.stats:
+                self.stats.save()
+
+    async def _count_time(self, step=30):
+        while True:
+            await asyncio.sleep(step)
+            if self.stats:
+                self.stats.add_time(step)
 
     async def _handle(self, msg):
         cmd = msg.get("cmd")
         if cmd == "RoomInfo":
+            self.hint_cost_pct = msg.get("hint_cost", 0)
+            if msg.get("seed_name") and (self.stats is None or self.stats.data["seed"] != msg["seed_name"]):
+                self.stats = stats.RunStats(msg["seed_name"])
             games = [g for g in msg.get("games", []) if g not in self.item_names]
             if games:
                 await self.send({"cmd": "GetDataPackage", "games": games})
@@ -126,13 +165,23 @@ class APWatcher:
                     self.players[p["slot"]]["name"] = p["alias"] or p["name"]
             self.checked = set(msg.get("checked_locations", []))
             self.total = len(self.checked) + len(msg.get("missing_locations", []))
-            keys = [k for s in self.players for k in (f"_read_client_status_{self.team}_{s}",
+            self.hint_points = msg.get("hint_points", 0)
+            if self.stats:
+                self.stats.set_players(self.players)
+            self._emit_hints()
+            keys =[k for s in self.players for k in (f"_read_client_status_{self.team}_{s}",
                                                       f"APL_{self.team}_{s}")]
             await self.send({"cmd": "SetNotify", "keys": keys}, {"cmd": "Get", "keys": keys})
             await self._publish()
             self.emit("state", {"connected": True, "text": "Mit dem Server verbunden."})
             self._emit_players()
         elif cmd == "RoomUpdate":
+            if "hint_points" in msg:
+                self.hint_points = msg["hint_points"]
+                self._emit_hints()
+            if "hint_cost" in msg:
+                self.hint_cost_pct = msg["hint_cost"]
+                self._emit_hints()
             if "checked_locations" in msg:
                 self.checked.update(msg["checked_locations"])
                 await self._publish()
@@ -158,6 +207,11 @@ class APWatcher:
             self.status[slot] = value or 0
         elif key.startswith("APL_") and isinstance(value, dict):
             self.launcher[slot] = value
+            if self.stats and slot in self.players and value.get("total"):
+                self.stats.progress(self.players[slot]["name"], value.get("checked", 0), value["total"])
+
+    def _emit_hints(self):
+        self.emit("hints", {"points": self.hint_points, "cost": self.hint_cost})
 
     async def _publish(self):
         value = {"checked": len(self.checked), "total": self.total, "game": self.game_clients > 0}
@@ -218,6 +272,12 @@ class APWatcher:
             if not any(f"'{t}'" in text for t in NON_GAME_TAGS) and self.game_clients > 0:
                 self.game_clients -= 1
                 await self._publish()
+        elif kind == "ItemSend" and "item" in msg:
+            self._item_event(msg)
+        elif kind == "Goal" and "slot" in msg:
+            if self.stats:
+                self.stats.goal(self._name(msg["slot"]))
+            self.emit("goal", self._name(msg["slot"]))
         if kind in ("Tutorial",):
             return
         text = self._render(msg.get("data", []))
@@ -226,6 +286,17 @@ class APWatcher:
         text = self._german(kind, msg) or text
         if text:
             self.emit("log", text)
+
+    def _item_event(self, msg):
+        item = msg["item"]
+        finder, receiver = item["player"], msg.get("receiving", item["player"])
+        flags = item.get("flags", 0)
+        if self.stats:
+            self.stats.item_sent(self._name(finder), self._name(receiver), flags)
+        if receiver == self.slot and finder != self.slot:
+            name = self.item_names.get(self._game(receiver), {}).get(item["item"], f"Item {item['item']}")
+            self.emit("received", {"item": name, "sender": self._name(finder),
+                                   "progression": bool(flags & stats.FLAG_PROGRESSION)})
 
     def _german(self, kind, msg) -> str | None:
         if kind == "ItemSend" and "item" in msg:

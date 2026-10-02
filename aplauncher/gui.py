@@ -5,12 +5,14 @@ import re
 import subprocess
 import threading
 import tkinter as tk
+import tempfile
 import uuid
 import webbrowser
+import winsound
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import apclient, config, games, host, lobby, overlay, roms, sail, theme, widgets
+from . import apclient, backup, config, dialogs, games, host, lobby, overlay, roms, sail, theme, updates, widgets
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
 
@@ -44,6 +46,9 @@ class App:
         self.ap_connected = False
         self.friend_address = ""
         self.overlay: overlay.Overlay | None = None
+        self.hint_dialog: dialogs.HintDialog | None = None
+        self.vpn_found = []         # [(name, ip)] of VPN adapters (Radmin, Hamachi, ...)
+        self.update_info = None
         # SoH reports scene changes here (Sail); the overlay/HUD use it to know where Link is.
         self.sail = sail.SailServer()
         self.sail.start()
@@ -52,6 +57,7 @@ class App:
         self._load_fields()
         widgets.fade_in(self.root)
         self.root.after(POLL_MS, self._drain)
+        self._check_update()
 
     # ================= layout =================
     def _card(self, parent, title=None, **pack):
@@ -85,6 +91,9 @@ class App:
                  bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9)).pack(anchor="w")
         self.pill = widgets.StatusPill(head)
         self.pill.pack(side="right", pady=6)
+        # Shown only when a newer release exists (see _check_update).
+        self.b_update = widgets.RoundButton(head, "⬆  Update", self.install_update, "primary", bg=theme.BG,
+                                            height=32)
 
         self.tabs = widgets.TabBar(self.root, [("play", "🎮  Spielen"), ("setup", "⚙  Einrichtung"),
                                               ("net", "🌐  Netzwerk"), ("log", "📜  Log")], self._show_tab)
@@ -130,6 +139,8 @@ class App:
         self.b_gen = mk("🚀  Multiworld starten", self.host_generate, "primary")
         self.b_play = widgets.RoundButton(self.actions, "▶  Spielen", self.play, "primary", height=40, size=11)
         self.b_overlay = mk("🗺  Overlay", self.toggle_overlay)
+        self.b_hint = mk("💡  Hint", self.open_hints)
+        self.b_stats = mk("📊  Statistik", lambda: dialogs.show_stats(self.root))
         self.b_stop = mk("Beenden", self.stop_all, "danger")
 
         info = ttk.Frame(conn, style="Card.TFrame")
@@ -204,8 +215,13 @@ class App:
         row.pack(fill="x")
         widgets.RoundButton(row, "📝  YAML bearbeiten", self.edit_yaml, height=32).pack(side="left", padx=(0, 8))
         widgets.RoundButton(row, "🧩  Options Creator", self.options_creator, height=32).pack(side="left", padx=(0, 8))
+        widgets.RoundButton(row, "🗄  Backups", lambda: dialogs.show_backups(self.root, self.paths, self._log),
+                            height=32).pack(side="left", padx=(0, 8))
         widgets.RoundButton(row, "📂  Ordner öffnen", lambda: self._open(self.paths.root), "ghost",
                             height=32).pack(side="left")
+        self.v_sounds = tk.BooleanVar()
+        ttk.Checkbutton(row, text="🔔 Ton bei wichtigen Items", variable=self.v_sounds, style="Card.TCheckbutton",
+                        command=self._save_fields).pack(side="right")
         self.game_opts = ttk.Frame(oc, style="Card.TFrame")
         self.game_opts.pack(fill="x", pady=(10, 0))
         self.b_mods = widgets.RoundButton(self.game_opts, "🎨  SoH Mods / Texturen", self.open_soh_mods, height=32)
@@ -216,8 +232,9 @@ class App:
                                    cursor="hand2")
         self.l_addr_net.pack(anchor="w")
         self.l_addr_net.bind("<Button-1>", lambda e: self.copy_address())
-        ttk.Label(ac, text="Wird beim Hosten angezeigt. Anklicken kopiert sie. Eigene Adresse (z. B. Radmin-, "
-                           "Hamachi- oder playit-Adresse) hier festlegen, leer = Internet-IP:",
+        ttk.Label(ac, text="Wird beim Hosten angezeigt. Anklicken kopiert sie. Eigene Adresse (z. B. playit-Adresse) "
+                           "hier festlegen. Leer = automatisch: Radmin/Hamachi-Adresse, falls vorhanden, "
+                           "sonst Internet-IP:",
                   style="CardMuted.TLabel", wraplength=860).pack(anchor="w", pady=(6, 4))
         row = ttk.Frame(ac, style="Card.TFrame")
         row.pack(fill="x")
@@ -273,6 +290,7 @@ class App:
         self.v_pw.set(self.s["password"])
         self.v_port.set(str(self.s.get("port", config.DEFAULT_PORT)))
         self.v_public.set(self.s.get("public_address", ""))
+        self.v_sounds.set(self.s.get("sounds", True))
         self._set_friend_address("")
         self._game_changed()
         self._refresh_buttons()
@@ -284,7 +302,8 @@ class App:
         if self.game in GAMES:
             self.s["roms"][self.game] = self.v_rom.get().strip()
         self.s.update(name=self.v_name.get().strip(), game=self.game, root=self.v_root.get().strip(),
-                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port)
+                      address=self.v_addr.get().strip(), password=self.v_pw.get(), port=self.port,
+                      sounds=self.v_sounds.get())
         config.save_settings(self.s)
 
     def _select_game(self, key):
@@ -344,13 +363,14 @@ class App:
         connected = self.ap_connected
         lobby_open = self.mode == "host" and self.lobby is not None and self.lobby.state == "lobby"
         if self.mode is None:
-            visible = [self.b_host, self.b_join, self.b_resume]
+            visible = [self.b_host, self.b_join, self.b_resume, self.b_stats]
             pill = ("busy", "Arbeitet …") if self.busy else ("offline", "Offline")
         elif lobby_open:
             visible = [self.b_gen, self.b_stop]
             pill = ("lobby", f"Lobby · {len(self.lobby.players)} Spieler")
         elif connected:
-            visible = ([self.b_play, self.b_overlay] if self.game in GAMES else []) + [self.b_stop]
+            visible = ([self.b_play, self.b_overlay, self.b_hint] if self.game in GAMES else []) + [self.b_stats,
+                                                                                                 self.b_stop]
             pill = ("connected", "Verbunden")
         else:
             visible = [self.b_stop]
@@ -596,10 +616,18 @@ class App:
         if self.s.get("public_address"):
             self._set_friend_address(self.s["public_address"])
             return
+        vpn = self._preferred_vpn()
+        if vpn:
+            # Everyone on the same VPN reaches the host there, no port forwarding needed.
+            self._set_friend_address(f"{vpn[1]}:{self.port}")
+            self._log(f"{vpn[0]} erkannt: Freunde im selben {vpn[0]}-Netzwerk nutzen {vpn[1]}:{self.port}. "
+                      "Andere Adresse im Netzwerk-Tab festlegen.")
+            return
 
         def work():
             ip = host.public_ip()
-            self.call(self._set_friend_address, f"{ip}:{self.port}" if ip else "")
+            # A VPN found in the meantime wins (it already set the address).
+            self.call(lambda: self.vpn_found or self._set_friend_address(f"{ip}:{self.port}" if ip else ""))
         threading.Thread(target=work, daemon=True).start()
 
     def _set_friend_address(self, address):
@@ -620,7 +648,7 @@ class App:
         config.save_settings(self.s)
         if self.mode == "host":
             self._show_public_address()
-        self.toast.show("✓ Gespeichert" if self.s["public_address"] else "✓ Es wird wieder deine Internet-IP verwendet")
+        self.toast.show("✓ Gespeichert" if self.s["public_address"] else "✓ Adresse wird wieder automatisch gewählt")
 
     def _detect_vpn(self):
         """Offer the IPs of Radmin VPN / Hamachi / Tailscale / ZeroTier adapters as one-click addresses."""
@@ -642,7 +670,14 @@ class App:
             self.call(self._show_vpn, found)
         threading.Thread(target=work, daemon=True).start()
 
+    def _preferred_vpn(self):
+        """Radmin first: that is what most Archipelago groups use."""
+        return next(iter(sorted(self.vpn_found, key=lambda v: v[0] != "Radmin")), None)
+
     def _show_vpn(self, found):
+        self.vpn_found = found
+        if self.mode == "host" and not self.s.get("public_address") and found:
+            self._show_public_address()  # VPN detection finished after hosting started
         for vpn, ip in found:
             addr = f"{ip}:{self.port}"
             widgets.RoundButton(self.vpn_box, f"{vpn}: {ip}", lambda a=addr: (self.v_public.set(a),
@@ -702,54 +737,17 @@ class App:
         if not sessions:
             messagebox.showinfo("Fortsetzen", "Keine gespeicherten Multiworlds gefunden.")
             return
-        win = tk.Toplevel(self.root)
-        win.title("Spielstand fortsetzen")
-        win.configure(bg=theme.BG)
-        # Tied to the launcher and modal, so it can never end up hidden behind it.
-        win.transient(self.root)
-        self.root.update_idletasks()
-        w, h = 640, 340
-        x = self.root.winfo_rootx() + (self.root.winfo_width() - w) // 2
-        y = self.root.winfo_rooty() + (self.root.winfo_height() - h) // 3
-        win.geometry(f"{w}x{h}+{x}+{y}")
-        theme.dark_titlebar(win)
-        tk.Label(win, text="Welche Multiworld möchtest du fortsetzen?", bg=theme.BG, fg=theme.FG,
-                 font=("Segoe UI Semibold", 11)).pack(anchor="w", padx=14, pady=(12, 0))
-        tk.Label(win, text="Doppelklick oder Enter startet den Server mit diesem Spielstand.", bg=theme.BG,
-                 fg=theme.MUTED, font=("Segoe UI", 9)).pack(anchor="w", padx=14)
-        lb = tk.Listbox(win, font=("Segoe UI", 11), activestyle="none", exportselection=False)
-        theme.style_text(lb)
-        lb.pack(fill="both", expand=True, padx=14, pady=10)
-        for z in sessions:
-            stamp = z.parent.name  # YYYY-MM-DD_HH-MM-SS
-            try:
-                d, t = stamp.split("_")
-                stamp = f"{d[8:10]}.{d[5:7]}.{d[0:4]}  {t[0:2]}:{t[3:5]}"
-            except (ValueError, IndexError):
-                pass
-            lb.insert("end", f"  {stamp}    –    {', '.join(host.session_players(z))}")
-        lb.selection_set(0)
-        lb.activate(0)
-
-        def go():
-            sel = lb.curselection()
-            if not sel:
-                return
-            z = sessions[sel[0]]
-            win.destroy()
+        def go(z):
             self.mode = "host"
             paths, port, pw = self.paths, self.port, self.v_pw.get()
             self.v_addr.set(f"localhost:{port}")
             self._show_public_address()
-            self.background(lambda: self._start_server(paths, z, port, pw), done=lambda: self._host_running(z))
-        widgets.RoundButton(win, "▶  Diesen Spielstand starten", go, "primary", bg=theme.BG).pack(pady=(0, 12))
-        lb.bind("<Double-Button-1>", lambda e: go())
-        win.bind("<Return>", lambda e: go())
-        win.bind("<Escape>", lambda e: win.destroy())
-        widgets.fade_in(win, 180)
-        win.lift()
-        win.grab_set()
-        lb.focus_set()
+
+            def work():
+                backup.create(paths, "vor dem Fortsetzen", z)
+                self._start_server(paths, z, port, pw)
+            self.background(work, done=lambda: self._host_running(z))
+        dialogs.pick_session(self.root, sessions, go)
 
     def _start_server(self, paths, zip_path, port, pw):
         self.server = host.Server(paths, zip_path, port, pw, self.log_threadsafe)
@@ -859,6 +857,35 @@ class App:
         elif kind == "error":
             self.set_state(f"Fehler: {data}")
             messagebox.showerror("Archipelago", data)
+        elif kind == "hints":
+            if self.hint_dialog:
+                self.hint_dialog.update_points(data["points"], data["cost"])
+        elif kind == "received" and data["progression"]:
+            self._notify(f"⭐ {data['item']} von {data['sender']}")
+        elif kind == "goal":
+            self._notify(f"🏆 {data} hat das Ziel erreicht!")
+
+    def _notify(self, text):
+        """Important event: toast in the launcher, line in the in-game HUD, optional sound."""
+        self.toast.show(text, ms=4000)
+        if self.overlay:
+            self.overlay.hud.notify(text)
+        if self.v_sounds.get():
+            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+
+    def open_hints(self):
+        if self.hint_dialog:
+            self.hint_dialog.win.lift()
+            return
+        if not (self.watcher and self.ap_connected):
+            return
+        if not self.watcher.my_item_names():
+            messagebox.showinfo("Hint", "Die Item-Liste ist noch nicht geladen. Gleich nochmal versuchen.")
+            return
+        self.hint_dialog = dialogs.HintDialog(self.root, self.watcher, self._hints_closed)
+
+    def _hints_closed(self):
+        self.hint_dialog = None
 
     def play(self):
         self._save_fields()
@@ -868,6 +895,11 @@ class App:
             return
         addr = f"localhost:{self.port}" if self.mode == "host" else self.v_addr.get().strip()
         name, pw = self.v_name.get().strip(), self.v_pw.get()
+        try:
+            if backup.create(self.paths, "vor dem Spielstart", self.session_zip):
+                self._log("Spielstände gesichert (Einrichtung → Backups).")
+        except OSError as e:
+            self._log(f"Backup fehlgeschlagen: {e}")
         try:
             if self.game == "sm64":
                 region = self._installer().sm64_region_built()
@@ -1006,6 +1038,48 @@ class App:
             self._show_public_address()
         self._log(f"Adresse für Freunde: {addr.strip()}" if addr.strip() else "Adresse für Freunde: eigene IP")
 
+    # ================= updates =================
+    def _check_update(self):
+        def work():
+            info = updates.latest()
+            if info:
+                self.call(self._show_update, info)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _show_update(self, info):
+        self.update_info = info
+        self.b_update.configure(text=f"⬆  Update {info['version']}")
+        self.b_update.pack(side="right", padx=(0, 10), pady=6)
+        self._log(f"Neue Version {info['version']} verfügbar: {info['url']}")
+
+    def install_update(self):
+        info = self.update_info
+        notes = f"\n\n{info['notes'][:600]}" if info["notes"] else ""
+        # Private builds (own icon etc.) are built by hand; they only point to the release page.
+        if not (config.is_public_build() and info["setup_url"]):
+            if messagebox.askyesno("Update", f"Version {info['version']} ist verfügbar.{notes}\n\n"
+                                             "Release-Seite im Browser öffnen?"):
+                webbrowser.open(info["url"])
+            return
+        if self.server and self.server.running():
+            messagebox.showinfo("Update", "Erst den Server beenden – das Update schließt den Launcher.")
+            return
+        if not messagebox.askyesno("Update", f"Version {info['version']} jetzt herunterladen und installieren?"
+                                             f"{notes}\n\nDer Launcher wird dafür geschlossen. Spiele und "
+                                             "Spielstände bleiben erhalten."):
+            return
+        dest = Path(tempfile.gettempdir()) / info["setup_name"]
+
+        def work():
+            self.log_threadsafe(f"Lade {info['setup_name']} ...")
+            updates.download(info["setup_url"], dest,
+                             lambda f: self.progress_threadsafe(f, f"Update {int(f * 100)} %"))
+
+        def run():
+            subprocess.Popen([str(dest)])
+            self.on_close(ask=False)
+        self.background(work, done=run)
+
     # ================= teardown =================
     def stop_all(self):
         if self.mode == "host" and self.server and self.server.running():
@@ -1021,6 +1095,8 @@ class App:
         self.client_poll_stop.set()
         if self.overlay:
             self.overlay.close()
+        if self.hint_dialog:
+            self.hint_dialog.close()
         self.session_zip = None
         self.ap_connected = False
         self._set_friend_address("")
@@ -1038,8 +1114,8 @@ class App:
             self.server = None
         self.mode = None
 
-    def on_close(self):
-        if self.server and self.server.running():
+    def on_close(self, ask=True):
+        if ask and self.server and self.server.running():
             if not messagebox.askyesno("Beenden", "Der Server läuft noch. Beenden? (Spielstand bleibt gespeichert)"):
                 return
         self._save_fields()

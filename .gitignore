@@ -8,3 +8,4 @@ _dl/
 *.n64
 *.v64
 release/
+assets/private/

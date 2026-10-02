@@ -5,10 +5,12 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Archipelago Launcher"
-APP_VERSION = "0.5.3"
+APP_VERSION = "0.6.0"
 DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
+# GitHub "owner/repo" whose releases the update check looks at; empty = no update check.
+UPDATE_REPO = ""
 
 AP_VERSION = "0.6.7"
 AP_URL = f"https://github.com/ArchipelagoMW/Archipelago/releases/download/{AP_VERSION}/Setup.Archipelago.{AP_VERSION}.exe"
@@ -52,6 +54,11 @@ def bundle_dir() -> Path:
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 
 
+def is_public_build() -> bool:
+    """build.ps1 -Public marks the exe; only public builds install updates themselves."""
+    return (bundle_dir() / "assets" / "public_build").is_file()
+
+
 def payload_dir() -> Path:
     """Optional offline payload (installers) bundled into a full package."""
     return bundle_dir() / "payload"
@@ -71,6 +78,7 @@ DEFAULT_SETTINGS = {
     "address": "localhost:38281",
     "password": "",
     "port": DEFAULT_PORT,
+    "sounds": True,
 }
 
 
