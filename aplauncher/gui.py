@@ -1088,7 +1088,8 @@ class App:
                              lambda f: self.progress_threadsafe(f, f"Update {int(f * 100)} %"))
 
         def run():
-            subprocess.Popen([str(dest)])
+            # The setup starts the new launcher at the end; it must not inherit this exe's PyInstaller state.
+            subprocess.Popen([str(dest)], env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
             self.on_close(ask=False)
         self.background(work, done=run)
 
@@ -1143,7 +1144,9 @@ class App:
                                "Launcher jetzt neu starten?" if de else "Restart the launcher now?"):
             self.on_close(ask=False)
             args = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, sys.argv[0]]
-            subprocess.Popen(args)
+            # Without this the new exe would reuse this one's unpacked temp folder, which is deleted on exit
+            # ("Failed to import encodings module").
+            subprocess.Popen(args, env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"})
 
     def on_close(self, ask=True):
         if ask and self.server and self.server.running():
