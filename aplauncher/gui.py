@@ -13,7 +13,8 @@ import winsound
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import apclient, backup, config, dialogs, games, host, i18n, lobby, overlay, roms, sail, theme, updates, widgets
+from . import (anim, apclient, backup, config, dialogs, games, host, i18n, lobby, overlay, roms, sail, theme, updates,
+               widgets)
 from .i18n import _
 from .config import GAMES, NO_GAME, Paths
 from .install import InstallError, Installer
@@ -67,6 +68,7 @@ class App:
         outer = tk.Frame(parent, bg=theme.PANEL, highlightthickness=1, highlightbackground=theme.BORDER)
         outer.pack(fill=pack.pop("fill", "x"), expand=pack.pop("expand", False), pady=pack.pop("pady", (0, 10)),
                    **pack)
+        self.page_cards[self.building].append(widgets.CardGlow(outer))
         inner = ttk.Frame(outer, style="Card.TFrame", padding=(14, 10, 14, 12))
         inner.pack(fill="both", expand=True)
         if title:
@@ -83,13 +85,13 @@ class App:
 
     def _build(self):
         self.toast = widgets.Toast(self.root)
+        widgets.AuroraLine(self.root).pack(fill="x")
 
-        head = ttk.Frame(self.root, padding=(18, 14, 18, 0))
+        head = ttk.Frame(self.root, padding=(18, 12, 18, 0))
         head.pack(fill="x")
         titles = ttk.Frame(head)
         titles.pack(side="left")
-        tk.Label(titles, text="◆ Archipelago Launcher", bg=theme.BG, fg=theme.FG,
-                 font=("Segoe UI Semibold", 18)).pack(anchor="w")
+        widgets.ShimmerTitle(titles, "Archipelago Launcher").pack(anchor="w")
         tk.Label(titles, text="Super Mario 64 · Ocarina of Time   ·   " + _("Version {v}").format(v=config.APP_VERSION),
                  bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9)).pack(anchor="w")
         self.pill = widgets.StatusPill(head)
@@ -104,24 +106,39 @@ class App:
 
         body = ttk.Frame(self.root, padding=(18, 12, 18, 6))
         body.pack(fill="both", expand=True)
-        self.pages = {k: ttk.Frame(body) for k in ("play", "setup", "net", "log")}
-        for page in self.pages.values():
-            page.place(relx=0, rely=0, relwidth=1, relheight=1)
-        self._build_play(self.pages["play"])
-        self._build_setup(self.pages["setup"])
-        self._build_net(self.pages["net"])
-        self._build_log(self.pages["log"])
+        self.page_order = ("play", "setup", "net", "log")
+        self.pages = {k: ttk.Frame(body) for k in self.page_order}
+        self.page_cards = {k: [] for k in self.page_order}
+        self.current_page, self.page_anim = None, None
+        for key, build in zip(self.page_order, (self._build_play, self._build_setup, self._build_net,
+                                                self._build_log)):
+            self.building = key
+            build(self.pages[key])
 
         # Progress bar only appears while something runs.
         self.foot = ttk.Frame(self.root, padding=(18, 0, 18, 10))
-        self.pb = ttk.Progressbar(self.foot, mode="determinate", maximum=1.0, style="Thin.Horizontal.TProgressbar")
+        self.pb = widgets.GlowProgress(self.foot)
         self.pb.pack(side="left", fill="x", expand=True)
         self.l_prog = tk.Label(self.foot, text="", bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9),
                                width=46, anchor="e")
         self.l_prog.pack(side="left", padx=(10, 0))
 
     def _show_tab(self, key):
-        self.pages[key].tkraise()
+        """The new page slides in from the side of its tab; its cards light up one after another."""
+        new, old = self.pages[key], self.pages.get(self.current_page)
+        if self.page_anim:
+            self.page_anim.cancel()
+        if old is not None and old is not new:
+            old.place_forget()
+        d = 1 if self.current_page is None or self.page_order.index(key) > self.page_order.index(
+            self.current_page) else -1
+        self.current_page = key
+        new.place(relx=0, rely=0, relwidth=1, relheight=1, x=d * 70)
+        new.tkraise()
+        self.page_anim = anim.Tween(new, 380, lambda t: new.place_configure(x=round(d * 70 * (1 - t))),
+                                    ease=anim.out_quint)
+        for i, card in enumerate(self.page_cards[key]):
+            card.flash(delay=60 + 70 * i)
 
     def _build_play(self, page):
         conn = self._card(page, _("Verbindung"))
@@ -228,8 +245,8 @@ class App:
         widgets.RoundButton(row, _("📂  Ordner öffnen"), lambda: self._open(self.paths.root), "ghost",
                             height=32).pack(side="left")
         self.v_sounds = tk.BooleanVar()
-        ttk.Checkbutton(row, text=_("🔔 Ton bei wichtigen Items"), variable=self.v_sounds, style="Card.TCheckbutton",
-                        command=self._save_fields).pack(side="right")
+        widgets.Toggle(row, _("🔔 Ton bei wichtigen Items"), self.v_sounds, command=self._save_fields).pack(
+            side="right")
         self.game_opts = ttk.Frame(oc, style="Card.TFrame")
         self.game_opts.pack(fill="x", pady=(10, 0))
         self.b_mods = widgets.RoundButton(self.game_opts, _("🎨  SoH Mods / Texturen"), self.open_soh_mods, height=32)
@@ -303,7 +320,7 @@ class App:
         self._refresh_buttons()
         self._detect_vpn()
         # First start or missing install: open the setup tab, otherwise go straight to playing.
-        self.tabs.select("play" if self.v_name.get() and self._installed() else "setup", animate=False)
+        self.tabs.select("play" if self.v_name.get() and self._installed() else "setup")
 
     def _save_fields(self):
         if self.game in GAMES:
@@ -382,11 +399,14 @@ class App:
         else:
             visible = [self.b_stop]
             pill = ("busy", _("Lobby") if self.mode == "client" else _("Startet …"))
-        if [w for w in self.actions.pack_slaves()] != visible:
-            for w in self.actions.pack_slaves():
+        shown = self.actions.pack_slaves()
+        if shown != visible:
+            for w in shown:
                 w.pack_forget()
-            for w in visible:
+            for i, w in enumerate(visible):
                 w.pack(side="right" if w is self.b_stop else "left", padx=(0, 8))
+                if w not in shown:  # newly shown buttons pop in one after another
+                    w.appear(delay=45 * i)
         for b in (self.b_host, self.b_join, self.b_resume, self.b_gen):
             b.configure(state="disabled" if self.busy else "normal")
         self.b_install.configure(state="disabled" if self.busy else "normal")
@@ -415,13 +435,9 @@ class App:
                     elif frac is None and not text:
                         self.foot.pack_forget()
                     if frac is None:
-                        self.pb.configure(mode="indeterminate")
-                        self.pb.start(15) if text else self.pb.stop()
-                        if not text:
-                            self.pb.configure(mode="determinate", value=0)
+                        self.pb.indeterminate() if text else self.pb.reset()
                     else:
-                        self.pb.stop()
-                        self.pb.configure(mode="determinate", value=frac)
+                        self.pb.set(frac)
                     self.l_prog.configure(text=text)
                 elif kind == "call":
                     fn, a = data
@@ -464,7 +480,14 @@ class App:
         self._refresh_buttons()
 
     def set_state(self, text):
-        self.l_state.configure(text=text)
+        """New status text lights up in purple and cools down to the normal colour."""
+        if text == self.l_state.cget("text"):
+            return
+        self.l_state.configure(text=text, foreground=theme.GLOW)
+        if getattr(self, "state_anim", None):
+            self.state_anim.cancel()
+        self.state_anim = anim.Tween(self.l_state, 900, lambda t: self.l_state.configure(foreground=anim.mix(theme.GLOW, theme.FG, t)),
+                   ease=anim.in_out_sine, delay=250)
 
     def _feed(self, text):
         self.feed.configure(state="normal")
@@ -743,10 +766,10 @@ class App:
         self._save_fields()
         if not self._free_port():
             return
-        sessions = host.list_sessions(self.paths)
-        if not sessions:
+        if not host.list_sessions(self.paths):
             messagebox.showinfo(_("Fortsetzen"), _("Keine gespeicherten Multiworlds gefunden."))
             return
+
         def go(z):
             self.mode = "host"
             paths, port, pw = self.paths, self.port, self.v_pw.get()
@@ -757,7 +780,7 @@ class App:
                 backup.create(paths, "vor dem Fortsetzen", z)
                 self._start_server(paths, z, port, pw)
             self.background(work, done=lambda: self._host_running(z))
-        dialogs.pick_session(self.root, sessions, go)
+        dialogs.pick_session(self.root, self.paths, go, self._log)
 
     def _start_server(self, paths, zip_path, port, pw):
         self.server = host.Server(paths, zip_path, port, pw, self.log_threadsafe)

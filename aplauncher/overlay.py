@@ -96,10 +96,10 @@ class Overlay:
         opts.pack(fill="x", pady=(0, 6))
         self.v_top = tk.BooleanVar(value=True)
         self.v_hud = tk.BooleanVar(value=True)
-        ttk.Checkbutton(opts, text=_("Immer oben"), variable=self.v_top,
-                        command=lambda: self.win.attributes("-topmost", self.v_top.get())).pack(side="left")
-        ttk.Checkbutton(opts, text=_("HUD im Spiel"), variable=self.v_hud,
-                        command=lambda: self.hud.set_enabled(self.v_hud.get())).pack(side="left", padx=12)
+        widgets.Toggle(opts, _("Immer oben"), self.v_top, bg=theme.BG,
+                       command=lambda: self.win.attributes("-topmost", self.v_top.get())).pack(side="left")
+        widgets.Toggle(opts, _("HUD im Spiel"), self.v_hud, bg=theme.BG,
+                       command=lambda: self.hud.set_enabled(self.v_hud.get())).pack(side="left", padx=12)
         self.l_status = tk.Label(top, text="", bg=theme.BG, fg=theme.MUTED, font=("Segoe UI", 9), anchor="w",
                                  justify="left", wraplength=390)
         self.l_status.pack(fill="x")

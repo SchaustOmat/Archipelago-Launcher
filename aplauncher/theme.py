@@ -17,6 +17,9 @@ DISABLED = "#5d5480"
 OK = "#5ee0a0"
 WARN = "#ffb35c"
 ERR = "#ff6b86"
+GLOW = "#c4a5ff"      # light purple for glows and highlights
+PINK = "#d77bff"      # magenta tip of the light band
+DEEP = "#4c1d95"      # deep violet
 FONT = ("Segoe UI", 10)
 
 

@@ -69,6 +69,35 @@ def last_played(zip_path: Path) -> float:
     return max(f.stat().st_mtime for f in [zip_path, *zip_path.parent.glob("*.apsave")])
 
 
+def created(zip_path: Path) -> datetime:
+    """The session folder is named after its creation time (YYYY-MM-DD_HH-MM-SS)."""
+    try:
+        return datetime.strptime(zip_path.parent.name, "%Y-%m-%d_%H-%M-%S")
+    except ValueError:
+        return datetime.fromtimestamp(zip_path.stat().st_mtime)
+
+
+def delete_session(paths: Paths, zip_path: Path):
+    """Move a saved multiworld (its whole session folder) to the Windows recycle bin."""
+    import ctypes
+    from ctypes import wintypes
+    folder = zip_path.parent.resolve()
+    if folder.parent != paths.sessions.resolve():
+        raise HostError(_("Kein Spielstand-Ordner: {path}").format(path=folder))
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("wFunc", wintypes.UINT), ("pFrom", wintypes.LPCWSTR),
+                    ("pTo", wintypes.LPCWSTR), ("fFlags", ctypes.c_ushort), ("fAnyOperationsAborted", wintypes.BOOL),
+                    ("hNameMappings", ctypes.c_void_p), ("lpszProgressTitle", wintypes.LPCWSTR)]
+    FO_DELETE, FOF_SILENT, FOF_NOCONFIRMATION, FOF_ALLOWUNDO, FOF_NOERRORUI = 3, 0x4, 0x10, 0x40, 0x400
+    op = SHFILEOPSTRUCTW(wFunc=FO_DELETE, pFrom=str(folder) + "\0",  # list ends with a double NUL
+                         fFlags=FOF_SILENT | FOF_NOCONFIRMATION | FOF_ALLOWUNDO | FOF_NOERRORUI)
+    code = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
+    if code or folder.exists():
+        raise HostError(_("Spielstand konnte nicht gelöscht werden (Code {code}). Läuft der Server noch?").format(
+            code=code))
+
+
 def session_players(zip_path: Path) -> list[str]:
     names = []
     for y in sorted((zip_path.parent / "players").glob("*.yaml")):

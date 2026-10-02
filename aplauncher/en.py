@@ -201,9 +201,21 @@ TEXT = {
     # ---------------------------------------------------------------- dialogs
     "Spielstand fortsetzen": "Resume save",
     "Welche Multiworld möchtest du fortsetzen?": "Which multiworld do you want to resume?",
-    "Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand.":
-        "Sorted by “last played”. Double-click or Enter starts the server with this save.",
-    "(erstellt {date})": "(created {date})",
+    "Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand.\n"
+    "Löschen verschiebt den Spielstand in den Papierkorb.":
+        "Sorted by “last played”. Double-click or Enter starts the server with this save.\n"
+        "Delete moves the save to the recycle bin.",
+    "Erstellt": "Created",
+    "Zuletzt gespielt": "Last played",
+    "Spielstand löschen": "Delete save",
+    "🗑  Löschen": "🗑  Delete",
+    "Spielstand vom {date} löschen?\nSpieler: {players}\n\nEr kommt in den Papierkorb und lässt sich dort "
+    "wiederherstellen.":
+        "Delete the save from {date}?\nPlayers: {players}\n\nIt goes to the recycle bin and can be restored from there.",
+    "Spielstand vom {date} in den Papierkorb verschoben.": "Save from {date} moved to the recycle bin.",
+    "Kein Spielstand-Ordner: {path}": "Not a save folder: {path}",
+    "Spielstand konnte nicht gelöscht werden (Code {code}). Läuft der Server noch?":
+        "The save could not be deleted (code {code}). Is the server still running?",
     "▶  Diesen Spielstand starten": "▶  Start this save",
     "Wo ist mein Item?": "Where is my item?",
     "Ein Hint verrät, in welcher Welt und an welchem Ort ein Item von dir liegt.\nDie Antwort erscheint im "

@@ -33,6 +33,13 @@ def date(dt, with_time=True) -> str:
     return dt.strftime(fmt + ("  %H:%M" if with_time else ""))
 
 
+def exact(dt) -> str:
+    """Date with the time to the second, e.g. '02.10.2026, 14:32:05 Uhr'."""
+    if _lang == "de":
+        return dt.strftime("%d.%m.%Y, %H:%M:%S Uhr")
+    return dt.strftime("%Y-%m-%d, %H:%M:%S")
+
+
 def _(text: str) -> str:
     if _lang == "de":
         return text

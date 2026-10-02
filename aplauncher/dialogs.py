@@ -44,34 +44,76 @@ def _listbox(win, rows):
     return lb
 
 
-def _session_row(zip_path) -> str:
-    played = datetime.fromtimestamp(host.last_played(zip_path))
-    try:  # folder name = creation time, YYYY-MM-DD_HH-MM-SS
-        created = i18n.date(datetime.strptime(zip_path.parent.name, "%Y-%m-%d_%H-%M-%S"), with_time=False)
-    except ValueError:
-        created = "?"
-    return (f"{i18n.date(played)}    –    {', '.join(host.session_players(zip_path))}    "
-            + _("(erstellt {date})").format(date=created))
-
-
-def pick_session(root, sessions, on_pick):
-    """List of saved multiworlds, last played first; on_pick(zip_path) for the chosen one."""
-    win = modal(root, _("Spielstand fortsetzen"), 680, 340)
+def pick_session(root, paths, on_pick, log=None):
+    """Saved multiworlds with exact creation and last-played times, last played first.
+    on_pick(zip_path) starts the chosen one; delete moves one to the recycle bin."""
+    sessions = []
+    win = modal(root, _("Spielstand fortsetzen"), 820, 460)
     _heading(win, _("Welche Multiworld möchtest du fortsetzen?"),
-             _("Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand."))
-    lb = _listbox(win, [_session_row(z) for z in sessions])
+             _("Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand.\n"
+               "Löschen verschiebt den Spielstand in den Papierkorb."))
+    row = tk.Frame(win, bg=theme.BG)
+    row.pack(side="bottom", fill="x", padx=14, pady=(0, 12))
+    cols = ("created", "played", "players")
+    tree = ttk.Treeview(win, columns=cols, show="headings", selectmode="browse", height=8)
+    for c, t, w in zip(cols, (_("Erstellt"), _("Zuletzt gespielt"), _("Spieler")), (210, 210, 340)):
+        tree.heading(c, text=t, anchor="w")
+        tree.column(c, width=w, anchor="w", stretch=c == "players")
+    tree.pack(fill="both", expand=True, padx=14, pady=10)
+
+    def refresh(select=0):
+        sessions[:] = host.list_sessions(paths)
+        tree.delete(*tree.get_children())
+        for i, z in enumerate(sessions):
+            played = datetime.fromtimestamp(host.last_played(z))
+            tree.insert("", "end", iid=str(i), values=(i18n.exact(host.created(z)), i18n.exact(played),
+                                                       ", ".join(host.session_players(z)) or "–"))
+        if sessions:
+            iid = str(min(select, len(sessions) - 1))
+            tree.selection_set(iid)
+            tree.focus(iid)
+
+    def chosen():
+        sel = tree.selection()
+        return sessions[int(sel[0])] if sel else None
 
     def go():
-        sel = lb.curselection()
-        if sel:
+        z = chosen()
+        if z:
             win.destroy()
-            on_pick(sessions[sel[0]])
-    widgets.RoundButton(win, _("▶  Diesen Spielstand starten"), go, "primary", bg=theme.BG).pack(pady=(0, 12))
-    lb.bind("<Double-Button-1>", lambda e: go())
+            on_pick(z)
+
+    def delete():
+        z = chosen()
+        if not z:
+            return
+        if not messagebox.askyesno(_("Spielstand löschen"),
+                                   _("Spielstand vom {date} löschen?\nSpieler: {players}\n\n"
+                                     "Er kommt in den Papierkorb und lässt sich dort wiederherstellen.").format(
+                                       date=i18n.exact(host.created(z)),
+                                       players=", ".join(host.session_players(z)) or "–"), parent=win):
+            return
+        index = int(tree.selection()[0])
+        try:
+            host.delete_session(paths, z)
+        except (host.HostError, OSError) as e:
+            messagebox.showerror(_("Spielstand löschen"), str(e), parent=win)
+            return
+        if log:
+            log(_("Spielstand vom {date} in den Papierkorb verschoben.").format(date=i18n.exact(host.created(z))))
+        refresh(index)
+        if not sessions:
+            win.destroy()
+
+    widgets.RoundButton(row, _("▶  Diesen Spielstand starten"), go, "primary", bg=theme.BG).pack(side="left")
+    widgets.RoundButton(row, _("🗑  Löschen"), delete, "danger", bg=theme.BG).pack(side="right")
+    tree.bind("<Double-Button-1>", lambda e: go())
+    tree.bind("<Delete>", lambda e: delete())
     win.bind("<Return>", lambda e: go())
+    refresh()
     win.lift()
     win.grab_set()
-    lb.focus_set()
+    tree.focus_set()
 
 
 class HintDialog:
