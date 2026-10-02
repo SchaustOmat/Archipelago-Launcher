@@ -565,6 +565,7 @@ TEXT = {
     "AKTIV": "ACTIVE",
     "Oberflächen-Sounds": "Interface sounds",
     "Startanimation": "Start animation",
+    "Animierter Hintergrund": "Animated backdrop",
     "Progressions-Item": "Progression item",
     "Ziel erreicht": "Goal reached",
     "von {sender}": "from {sender}",

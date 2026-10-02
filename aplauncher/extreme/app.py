@@ -67,6 +67,7 @@ class ExtremeApp(App):
         self.sounds = Sounds(self.s.get("ui_sounds", False))
         sc.sound = self.sounds.play
         sc.on_layout = self._layout
+        sc.animate_bg = self.s.get("bg_anim", True)
         self.started = self.intro_done = False
         self.tl = None
         self.console = None
@@ -214,10 +215,12 @@ class ExtremeApp(App):
         self.v_sounds = tk.BooleanVar()
         self.v_intro = tk.BooleanVar(value=self.s.get("intro", True))
         self.v_uisnd = tk.BooleanVar(value=self.s.get("ui_sounds", False))
+        self.v_bganim = tk.BooleanVar(value=self.s.get("bg_anim", True))
         self.toggles = [
             o.add(Toggle(sc, pg, look.plain(_("🔔 Ton bei wichtigen Items")), self.v_sounds, self._save_fields)),
             o.add(Toggle(sc, pg, _("Oberflächen-Sounds"), self.v_uisnd, self._save_extreme)),
-            o.add(Toggle(sc, pg, _("Startanimation"), self.v_intro, self._save_extreme))]
+            o.add(Toggle(sc, pg, _("Startanimation"), self.v_intro, self._save_extreme)),
+            o.add(Toggle(sc, pg, _("Animierter Hintergrund"), self.v_bganim, self._save_extreme))]
 
     def _build_net(self):
         sc, pg = self.sc, "net"
@@ -449,6 +452,7 @@ class ExtremeApp(App):
         self.s["intro"] = self.v_intro.get()
         self.s["ui_sounds"] = self.v_uisnd.get()
         self.sounds.enabled = self.s["ui_sounds"]
+        self.s["bg_anim"] = self.sc.animate_bg = self.v_bganim.get()
         config.save_settings(self.s)
 
     # ================= pages =================

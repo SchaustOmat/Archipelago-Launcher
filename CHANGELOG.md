@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.1
+
+### Changed
+- **Extreme interface is lighter:** the backdrop updates 6 times a second instead of 10, the grain stands
+  still and the glass is refreshed once a second. Much less to transfer when watching over AnyDesk or
+  similar tools.
+- New switch **Options → Animated backdrop**: off keeps a still picture (about 3 % CPU instead of about 14 %);
+  the build-up, glitches and banners still move.
+
 ## 0.8.0
 
 ### New

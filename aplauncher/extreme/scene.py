@@ -10,10 +10,10 @@ from .. import anim
 from . import look
 from .backdrop import Backdrop
 
-AMBIENT_FPS = 10      # backdrop when nothing else moves (it drifts slowly, 10 fps look smooth)
+AMBIENT_FPS = 6       # backdrop when nothing else moves (it drifts slowly)
 BOOST_FPS = 60        # while building up / glitching
-GLASS_EVERY = 0.35    # seconds between new blur snapshots
-GLASS_FADE = 0.25     # cross-fade between two snapshots
+GLASS_EVERY = 1.0     # seconds between new blur snapshots
+GLASS_FADE = 0.4      # cross-fade between two snapshots
 
 
 class Timeline:
@@ -117,6 +117,7 @@ class Scene:
         self.frame_ms = []       # last compose durations, for the smoke test
         self.sound = lambda name: None
         self.keep_running = False  # tests: animate even without focus
+        self.animate_bg = True     # False: the backdrop stands still between build-ups (cheap, remote-desktop friendly)
         self._resize_job = None
         self.loop = anim.Loop(self.c, self._tick, fps=AMBIENT_FPS, ambient=True)
         self.c.bind("<Configure>", self._configure)
@@ -154,6 +155,9 @@ class Scene:
         # The engine ticks as fast as the fastest animation needs; the backdrop keeps its own pace.
         if now - self.last < 1 / (BOOST_FPS if boosted else AMBIENT_FPS) - 0.002:
             return
+        if not boosted and not self.animate_bg and self.last_frame is not None:
+            if all(g.prev is None and g.img is not None for g in self.glass_for(self.page)):
+                return
         self.last = now
         self.compose(now)
 

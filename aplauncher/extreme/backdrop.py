@@ -57,7 +57,7 @@ class Backdrop:
         scan = scan.resize((w, h), Image.NEAREST)
         base = ImageChops.multiply(vig, scan)
         self.shades = []
-        for i in range(3):
+        for i in range(1):
             grain = Image.effect_noise((w, h), 40).point(lambda v: max(0, min(255, 228 + (v - 128) // 3)))
             self.shades.append(Image.merge("RGB", [ImageChops.multiply(base, grain)] * 3))
         # Particles in window coordinates; they keep their place across resizes.
@@ -91,4 +91,5 @@ class Backdrop:
             s = p["spr"]
             frame.paste(s, (int(x * self.w) - s.width // 2, int(y * self.h) - s.height // 2), s)
         self.frame_no += 1
-        return ImageChops.multiply(frame, self.shades[(self.frame_no // 2) % 3])
+        # Grain stands still: changing every pixel each frame looks busy and floods remote-desktop tools.
+        return ImageChops.multiply(frame, self.shades[0])
