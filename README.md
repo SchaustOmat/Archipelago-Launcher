@@ -56,3 +56,6 @@ Mario 64 kann nicht vorgebaut mitgeliefert werden (die exe enthält Daten aus de
 ## Versionen
 Archipelago 0.6.7 · SoH Archipelago 1.4.2 · sm64ex `archipelago`-Branch (N00byKing) mit `60fps_ex.patch`.
 Test ohne Spiele: `python tests/flow_test.py C:\APLauncher`.
+
+## Lizenz
+MIT, siehe `LICENSE`. Archipelago, Ship of Harkinian und sm64ex haben eigene Lizenzen; ROMs werden nie mitgeliefert.

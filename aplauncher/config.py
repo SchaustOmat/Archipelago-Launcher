@@ -10,7 +10,7 @@ DEFAULT_PORT = 38281
 # MSYS2 and make break on paths with spaces, so the install folder must not contain any.
 DEFAULT_ROOT = r"C:\APLauncher"
 # GitHub "owner/repo" whose releases the update check looks at; empty = no update check.
-UPDATE_REPO = ""
+UPDATE_REPO = "SchaustOmat/Archipelago-Launcher"
 
 AP_VERSION = "0.6.7"
 AP_URL = f"https://github.com/ArchipelagoMW/Archipelago/releases/download/{AP_VERSION}/Setup.Archipelago.{AP_VERSION}.exe"
