@@ -56,11 +56,16 @@ def generate(paths: Paths, yamls: dict[str, str], log) -> Path:
 
 
 def list_sessions(paths: Paths) -> list[Path]:
-    """Previous multiworlds (newest first) that can be resumed."""
+    """Previous multiworlds that can be resumed, the one played last first."""
     if not paths.sessions.is_dir():
         return []
     out = [z for s in paths.sessions.iterdir() for z in s.glob("AP_*.zip")]
-    return sorted(out, key=lambda z: z.stat().st_mtime, reverse=True)
+    return sorted(out, key=last_played, reverse=True)
+
+
+def last_played(zip_path: Path) -> float:
+    """The server rewrites the .apsave while playing, so its time is when the multiworld was last played."""
+    return max(f.stat().st_mtime for f in [zip_path, *zip_path.parent.glob("*.apsave")])
 
 
 def session_players(zip_path: Path) -> list[str]:

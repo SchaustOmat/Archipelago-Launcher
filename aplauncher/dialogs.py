@@ -1,6 +1,7 @@
 """Small modal windows of the launcher: resume a multiworld, hints, statistics, save backups."""
 import os
 import tkinter as tk
+from datetime import datetime
 from tkinter import messagebox, ttk
 
 from . import backup, host, stats, theme, widgets
@@ -42,21 +43,20 @@ def _listbox(win, rows):
     return lb
 
 
-def _session_date(zip_path) -> str:
-    stamp = zip_path.parent.name  # YYYY-MM-DD_HH-MM-SS
-    try:
-        d, t = stamp.split("_")
-        return f"{d[8:10]}.{d[5:7]}.{d[0:4]}  {t[0:2]}:{t[3:5]}"
-    except (ValueError, IndexError):
-        return stamp
+def _session_row(zip_path) -> str:
+    played = datetime.fromtimestamp(host.last_played(zip_path))
+    stamp = zip_path.parent.name  # created: YYYY-MM-DD_HH-MM-SS
+    created = f"{stamp[8:10]}.{stamp[5:7]}." if len(stamp) >= 10 else "?"
+    return (f"{played.strftime('%d.%m.%Y  %H:%M')}    –    {', '.join(host.session_players(zip_path))}"
+            f"    (erstellt {created})")
 
 
 def pick_session(root, sessions, on_pick):
-    """List of saved multiworlds; on_pick(zip_path) for the chosen one."""
-    win = modal(root, "Spielstand fortsetzen", 640, 340)
+    """List of saved multiworlds, last played first; on_pick(zip_path) for the chosen one."""
+    win = modal(root, "Spielstand fortsetzen", 680, 340)
     _heading(win, "Welche Multiworld möchtest du fortsetzen?",
-             "Doppelklick oder Enter startet den Server mit diesem Spielstand.")
-    lb = _listbox(win, [f"{_session_date(z)}    –    {', '.join(host.session_players(z))}" for z in sessions])
+             "Sortiert nach „zuletzt gespielt“. Doppelklick oder Enter startet den Server mit diesem Spielstand.")
+    lb = _listbox(win, [_session_row(z) for z in sessions])
 
     def go():
         sel = lb.curselection()
