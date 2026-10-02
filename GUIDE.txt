@@ -20,7 +20,9 @@ Starting
 Setup (once, tab "⚙ Setup")
 ---------------------------
 1. Enter a player name (max. 16 characters, everyone needs a different name).
-   Below it you can pick the language (Deutsch / English).
+   Below it you can pick the language (Deutsch / English) and the interface:
+   "Clean" (plain) or "Extreme" (builds itself up visibly at start; start animation and interface
+   sounds can be turned off under Options, a click or key press skips the build-up).
 2. Click your game (card) and choose your ROM with "Browse ...".
    A green check mark means the ROM fits.
 3. Click "Install / Check" and wait:

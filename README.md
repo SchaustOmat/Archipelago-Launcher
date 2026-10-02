@@ -8,7 +8,8 @@ from one window – no command line, no manual YAML juggling. ROMs are never inc
 
 ## For players
 1. Download the setup from [Releases](https://github.com/SchaustOmat/Archipelago-Launcher/releases/latest),
-   install it and start the launcher. Language: Setup → "Sprache / Language".
+   install it and start the launcher. Language: Setup → "Sprache / Language"; interface style
+   (Clean / Extreme) right below it.
 2. Pick a player name, your game and your own ROM → **Install / Check**.
    - Mario 64: USA or Japan ROM (.z64/.n64/.v64). The game is built on your PC once (about 10–15 min).
    - OoT: any non-Master-Quest version. SoH creates its game data from it once.

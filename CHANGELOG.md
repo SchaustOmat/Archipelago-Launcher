@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0
+
+### New
+- **Extreme interface** (Setup → Interface: Clean / Extreme). The clean interface stays the default. Extreme
+  draws the whole window on one canvas: drifting purple nebula with particles, scanlines, grain and vignette;
+  frosted-glass panels that blur what is behind them; RGB-glitch page changes; killstreak-style banners for
+  important items.
+- **The launcher builds itself up at start** (about 2.5 s): a scan line reveals the backdrop, the logo appears
+  with a light ring, particles fly in and lock onto the panel edges, panels are printed line by line, small
+  parts form out of pixel noise, texts decode out of random characters, buttons go from corner brackets to a
+  line to a flash. System start lines show real checks (Archipelago, game, ROM, VPN). A click or key skips
+  it; it can be turned off (Options → Start animation). Page changes use a short version.
+- **Interface sounds** (optional, off by default), generated in code.
+- The backdrop runs at 10 fps (about 15 % of one CPU core) and stops completely while the launcher is in the
+  background.
+
 ## 0.7.0
 
 ### New
